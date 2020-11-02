@@ -1,10 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Nov  1 12:23:20 2020
+
+@author: Maud
+"""
+
 #import the relevant modules
 from psychopy import visual, data, event, core, gui
-import time, os, pandas
+import os, pandas, math
 import numpy as np
 
 #Info: verander n_blocktrials om het aantal trials per block te wijzigen (lijn 28)
-#Info: speedy = 1, door het experiment rushen, de frame-timings worden wel volledig afgespeeld, dit om makkelijker te kijken of de timings correct zijn (lijn 11)
+#Info: speedy = 1, door het experiment rushen, de frame-timings worden wel volledig afgespeeld, 
+    #dit om makkelijker te kijken of de timings correct zijn (lijn 11)
 #Info: de monitor bij het definieren van de window moet wss ook nog aangepast worden (lijn 49)
 
 #allow to speed through the experiment
@@ -24,7 +32,7 @@ AllOptions = np.array(np.meshgrid(FTI, Flash_Options, Target_Relative_Options)).
 
 #Add the CorResp to the array 
 n_blocktrials = AllOptions.shape[0]
-n_blocktrials = 2                               #this is added to run the experiment with only 2 trials, this for programming 
+n_blocktrials = 4                      #this is added to run the experiment with only 2 trials, this for programming 
 CorResp = np.zeros(shape = AllOptions.shape[0])
 for i in range(AllOptions.shape[0]):          #0 = "f" / L; 1 = "j" / R
     if (AllOptions[i, 1] == "L" and AllOptions[i,2] == "S") or (AllOptions[i, 1] == "R" and AllOptions[i,2] == "O"): 
@@ -37,7 +45,7 @@ AllOptions = np.column_stack([AllOptions, Target_location])
 
 
 #define the amount of trials & blocks
-n_blocks = 6
+n_blocks = 2
 n_trials = n_blocks*n_blocktrials
 
 
@@ -66,21 +74,101 @@ colorOval = "Black"
 colorCross = "white"
 d1 = 0.6       #diameter outer circle (degrees)
 d2 = 0.2        #diameter inner circle (degrees)
-
+r1 = d1/2
+r2 = d2/2
 ppd = 25 #find formula to transpose pixels to visual degrees (here pixel per degree)
 
+point_d = math.sqrt(r1**2/2)
 
 ##problem I think: lineWidth & lineWidth are in pixels
-dot_b = visual.Circle(win, color = 'black', radius = d1/2, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
-dot_s = visual.Circle(win, color = 'black', radius = d2/2, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
-line_v = visual.Line(win, start = (0,-d1/2), end = (0,d1/2), lineColor = 'white', fillColor = 'white', lineWidth  = ppd*d2)
-line_h = visual.ShapeStim(win, vertices = ((-d1/2,0),(d1/2, 0)), lineColor = 'white', fillColor = 'white', lineWidth = ppd*d2)
+dot_b = visual.Circle(win, color = 'black', radius = r1, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
+dot_s = visual.Circle(win, color = 'black', radius = r2, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
+line_v = visual.ShapeStim(win, vertices = ((0,-r1),(0,r1)), lineColor = 'white', 
+                     fillColor = 'white', lineWidth  = ppd*d2)
+line_h = visual.ShapeStim(win, vertices = ((-r1,0),(r1, 0)), lineColor = 'white', 
+                          fillColor = 'white', lineWidth = ppd*d2)
+line_d1 = visual.ShapeStim(win, vertices = ((-point_d, -point_d),(point_d, point_d)), 
+                               lineColor = 'white', fillColor = 'white', lineWidth = ppd*d2)
+line_d2 = visual.ShapeStim(win, vertices = ((-point_d, point_d), (point_d, -point_d)), 
+                               lineColor = 'white', fillColor = 'white', lineWidth = ppd*d2)
+def fixation_set_position(x = 0, y = 0, fix_type = 'plus'): 
+    dot_b.pos = (x, y)
+    dot_s.pos = (x,y)
+    if fix_type == 'plus': 
+        line_v.vertices = ((0+x,-r1+y),(0+x,r1+y))
+        line_h.vertices = ((-r1+x,0+y),(r1+x, 0+y))
+    else: 
+        line_d1.vertices = ((-point_d+x, -point_d+y),(point_d+x, point_d+y))
+        line_d2.vertices = ((-point_d+x, point_d+y), (point_d+x, -point_d+y))
 
-def fixation():             #draws the fixation, does not flip it yet!
-    dot_b.draw()
-    line_h.draw()
-    line_v.draw()
-    dot_s.draw()
+fixation_types = np.array(['plus', 'cross'])
+
+#fix = '' should be filled in with the type for that trial
+def fixation_draw(fix = 'plus'):             #draws the fixation, does not flip it yet!
+    if fix == 'plus': 
+        dot_b.draw()
+        line_h.draw()
+        line_v.draw()
+        dot_s.draw()
+    else: 
+        dot_b.draw()
+        line_d1.draw()
+        line_d2.draw()
+        dot_s.draw()
+
+#create an array to shuffle each block for 50% cross and 50% plus fixation cross 
+block_fixation = np.concatenate([np.zeros(int(n_blocktrials/2)), np.ones(int(n_blocktrials/2))])
+#0 = plus, 1 = cross!
+
+
+
+
+n_catchtrials = 5 #number of catch trials for EACH block 
+def catch_trials_selection(): 
+    catch_trials = np.random.randint(0, n_blocktrials, n_catchtrials)
+    return catch_trials
+
+catch_question = visual.TextStim(win, text = str('Welk fixatiekruis heb je voor het laatst gezien: Het linker'
+                                                 + ' of het rechter? \n Druk \'f\' als je links denkt,'
+                                                 +'\'j\' als je rechts denkt'), pos = (0, 0.5), 
+                                 wrapWidth = 1.9, units = 'norm')
+
+#to display the catch trial, retutns the response that was given
+#left = plus (f), right = cross (j)
+catch_fix_positions = np.array([-4, 4])
+def catch_trial(): 
+    catch_question.draw()
+    #draw the left fixation: plus
+    for i, pos in enumerate(catch_fix_positions): 
+        fixation_set_position(x = pos, y = 0, fix_type = fixation_types[i])
+        fixation_draw(fix = fixation_types[i])
+    win.flip()
+    catch_response = event.waitKeys(keyList = ResponseOptions)
+    for i in range(2): 
+        fixation_set_position(x = 0, y = 0, fix_type = fixation_types[i])
+    return catch_response
+
+
+#allow to display FB on the catch trial 
+FB_catch_correct = visual.TextStim(win, text = 'Juist')
+FB_catch_wrong = visual.TextStim(win, text = 'Fout, probeer tijdens de trial te fixeren op het fixatiekruis')
+
+def feedback_catch(correct_button = 0, response = None): 
+    if response == correct_button: 
+        FB_catch_correct.draw()
+        accuracy = 1
+        duration = 0.5
+    else: 
+        FB_catch_wrong.draw()
+        accuracy = 0
+        duration = 2 
+    win.flip()
+    core.wait(duration)
+    return accuracy
+    
+        
+        
+
 
 #C. Create a function for the drifting gratings                                 Drifting gratings
 #define some stuff
@@ -200,11 +288,11 @@ def target_prepare(target_loc = '0.0', amplitude = 5, left_i = left_count, right
     target_template.maskParams={'sd':amplitude/2}
 
 
-extra_response_screen = visual.TextStim(win, text = 'Give an answer')
+extra_response_screen = visual.TextStim(win, text = 'Antwoord!')
     
     
 #picture that clarifies the experiment to the participant
-design_pic = visual.ImageStim(win, image = "Design_staircase.jpg", pos = (0, -0.5), units = 'norm')
+#design_pic = visual.ImageStim(win, image = "Design_staircase.jpg", pos = (0, -0.5), units = 'norm')
 
 
 #Part 4: Define timings that can be defined before hand                                                                                 Part 4: Fixed Timings
@@ -220,8 +308,10 @@ Resp_time_ms = 1000
 Resp_extra_ms = 1000
 
 #Define the timings in Frames
-Gr_start_limits = Gr_start_limits_ms/FrameT
+Gr_start_limits = np.round(Gr_start_limits_ms/FrameT, 0)
+Gr_start_limits.astype(int)
 Gr_Fl_limits = Gr_Fl_limits_ms/FrameT
+Gr_Fl_limits.astype(int)
 Fl_dur = int(round(Fl_dur_ms / FrameT, 0))
 T_dur = int(round(T_dur_ms / FrameT, 0))
 Resp_time = int(round(Resp_time_ms / FrameT))
@@ -237,7 +327,7 @@ info = { 'Naam': '','Gender': ['man', 'vrouw', 'derde gender'], 'Leeftijd': 0 , 
 
 #define directory & datafile to store information 
 my_home_directory = os.getcwd()
-my_directory = my_home_directory + '/' + 'data_Allblocks'
+my_directory = my_home_directory + '/' + 'data_Experiment'
 if not os.path.isdir(my_directory): 
     os.mkdir(my_directory)
 os.chdir(my_directory)
@@ -320,13 +410,13 @@ def message(message_text = '', duration = 0, response_keys = ['space'], color = 
 
 FB_template = visual.TextStim(win, text = '')
 FB_duration = 0.5
-FB_options = np.array(['Wrong', 'Correct', 'Too slow'])
+FB_options = np.array(['Fout', 'Juist', 'Te traag'])
 points = np.array(['+0', str('+' + str(points_per_trial)), '+0'])          #wrong, correct, no answer given 
 def feedback_trial(block_type = 'REWARD', accuracy = 0, duration = FB_duration):        #accuracy should be matched based on acc. & block_type based on type
     if block_type == 'REWARD': 
         FB_text = str(FB_options[accuracy] + " " + points[accuracy])
     else: 
-        FB_text = str(FB_options[accuracy])
+        FB_text = str(FB_options[accuracy] + " " + points[0])
     FB_template.text = FB_text
     FB_template.draw()
     win.flip()
@@ -337,11 +427,13 @@ def feedback_trial(block_type = 'REWARD', accuracy = 0, duration = FB_duration):
 
 FB_block_duration = 2
 total_points = 0
-def feedback_block(duration = FB_block_duration, block_type = 'REWARD', blockP = 0, totalP = 0):
+def feedback_block(durationR = FB_block_duration, block_type = 'REWARD', blockP = 0, totalP = 0):
     if block_type == 'REWARD': 
-        FB_block_text = "End of this block \nPoints this block = {0} \n Points total = {1} ".format(blockP, totalP)
+        FB_block_text = "Einde van dit blok. \nPunten dit blok = {0} \n Punten totaal = {1} ".format(blockP, totalP)
+        duration = durationR
     else: 
-        FB_block_text = "End of this block." 
+        FB_block_text = "Einde van dit blok." 
+        duration = 1
     FB_template.text = FB_block_text 
     FB_template.draw()
     win.flip()
@@ -360,7 +452,7 @@ def feedback_block(duration = FB_block_duration, block_type = 'REWARD', blockP =
 
 message(message_text = greeting)
 message(message_text = instructions_staircase1A, flip = False, position = (0, 0.5))
-design_pic.draw()
+#design_pic.draw()
 message(message_text = instructions_staircase1B, flip = False, position = (0, -0.9))
 win.flip()
 if speedy == 1: 
@@ -388,11 +480,13 @@ for block in range(n_blocks):
     
     
     #Define the timings that variate per block 
-    Gr_start_array = np.random.random_integers(Gr_start_limits[0], Gr_start_limits[1], AllOptions.shape[0])   #the amount of frames before gratings appear 
+    Gr_start_array = np.random.randint(Gr_start_limits[0], Gr_start_limits[1], AllOptions.shape[0])   #the amount of frames before gratings appear 
+    print(Gr_start_array)
         #problem: returns values of 29 as well, how is this possible???                                     !!!!!!!!!!!
         #think it is okay cause python starts counting from 0 onwards
         ##To get Random integers array of type NumPy int between low and high, inclusive.
-    Gr_Fl_array = np.random.random_integers(Gr_Fl_limits[0], Gr_Fl_limits[1], AllOptions.shape[0]) #amount of frames between Grating & Flash 
+    Gr_Fl_array = np.random.randint(Gr_Fl_limits[0], Gr_Fl_limits[1], AllOptions.shape[0]) #amount of frames between Grating & Flash 
+    print(Gr_Fl_array)
     FTI_array = Block_array[:, 0] #amount of frames between flash & target appearance 
     FTI_array = FTI_array.astype(int)         #make sure the values stored are floats, to be able to add with another array later on 
     #Define all the total Frames for each trial for this block 
@@ -416,6 +510,15 @@ for block in range(n_blocks):
     left_count = 0
     right_count = 0
     
+    #shuffle what fixation cross will be displayed each trial
+    np.random.shuffle(block_fixation)
+    
+    
+    #define an array with when the catch trials will appear this block: 
+    catch_trials = catch_trials_selection()
+    catch_trials = np.array([2, 4]) #is even om te testen 
+    
+    
     #Create the trialloop
     DesignTL = pandas.DataFrame.to_dict(Block_DF, orient = "records")
     trials = data.TrialHandler(trialList = DesignTL, nReps = 1, method = "sequential")
@@ -428,7 +531,8 @@ for block in range(n_blocks):
     #the type of the current block 
     this_block_type = block_type_array[block]
     #announce the start of the block 
-    message(message_text = str("This is block {0}. This is a {1} block.".format(block + 1, this_block_type) + "\n Press space to start"))
+    message(message_text = str("Dit is blok {0}. Dit is een {1} blok.".format(block + 1, this_block_type) 
+                               + "\n Druk \'spatie\' om te starten."))
     
     
     #start the loop
@@ -451,10 +555,13 @@ for block in range(n_blocks):
         start_target = T_start[this_blocktrial] 
         stop_target = T_start[this_blocktrial] + T_dur
         
+        fix_type_bin = int(block_fixation[this_blocktrial])
+        fix_type = fixation_types[fix_type_bin]
+        
         clock_check.reset()
 
-        for Frame in range(Max_Frames[this_blocktrial]):
-            fixation()
+        for Frame in range(1, Max_Frames[this_blocktrial]):
+            fixation_draw(fix = fix_type)
             if Frame >= start_grating: 
                 grating_draw()
                 
@@ -512,6 +619,12 @@ for block in range(n_blocks):
             points_this_block = points_this_block + points_per_trial
             points_total = points_total + points_per_trial
         
+        if this_blocktrial in catch_trials: 
+            catch_response = catch_trial()
+            catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
+                                      response = catch_response[0])
+            trials.addData('catch accuracy', catch_accuracy)
+        
         
         #Add relevant data to the stored output_file
         
@@ -539,18 +652,21 @@ for block in range(n_blocks):
         trials.addData('T appear T', T_appearT)
         trials.addData('T stop T', T_stopT)
         
+        
         #allow to store the next entry 
         thisExp.nextEntry()
-        #this is !! for the function target_draw() to select the right value from the target_position_arrays L or R 
+        #this is !! for the function target_draw() to select the right value from the target_position_arrays 
+                #L or R 
         if trial['CorResp'] == '0.0': 
             left_count = left_count + 1
         else: 
             right_count = right_count + 1
         this_blocktrial = this_blocktrial + 1
         trial_count = trial_count + 1
-        if this_blocktrial == n_blocktrials:                 #allow to run the experiment with less trials than 84 per block 
+        if this_blocktrial == n_blocktrials:    #allow to run the experiment with less trials than 84 per block 
             break
-    feedback_block(duration = FB_block_duration, block_type = this_block_type, blockP = points_this_block, totalP = points_total)
+    feedback_block(durationR = FB_block_duration, block_type = this_block_type, blockP = points_this_block, 
+                   totalP = points_total)
     
 win.close()
 
