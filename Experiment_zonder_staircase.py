@@ -5,18 +5,52 @@ Created on Sun Nov  1 12:23:20 2020
 @author: Maud
 """
 
+"""
+Some information: 
+* can press 'escape' to quit the experiment
+* speedy = 1: then an answer is given automatically 
+   - frame-timings are completed every trial (check whether timings are correct possible)
+* win = fullScreen
+* verander n_blocktrials om het aantal trials per block te wijzigen (lijn 28)
+* change the monitor to the correct one
+* remark: ppd is variable based on screen-width: have to change this in beginning as well
+"""
+
 #import the relevant modules
 from psychopy import visual, data, event, core, gui
 import os, pandas, math
 import numpy as np
 
-#Info: verander n_blocktrials om het aantal trials per block te wijzigen (lijn 28)
-#Info: speedy = 1, door het experiment rushen, de frame-timings worden wel volledig afgespeeld, 
-    #dit om makkelijker te kijken of de timings correct zijn (lijn 11)
-#Info: de monitor bij het definieren van de window moet wss ook nog aangepast worden (lijn 49)
-
 #allow to speed through the experiment
 speedy = 0
+
+#create the gui 
+# display the gui
+info = { 'Naam': '','Gender': ['man', 'vrouw', 'derde gender'], 'Leeftijd': 0 , 'Participant nummer': 1}
+
+#define directory & datafile to store information 
+my_home_directory = os.getcwd()
+my_directory = my_home_directory + '/' + 'data_Experiment'
+if not os.path.isdir(my_directory): 
+    os.mkdir(my_directory)
+os.chdir(my_directory)
+
+# make sure no repetitions of the pp_number occur
+already_exists = True 
+while already_exists == True: 
+    info_dialogue = gui.DlgFromDict(dictionary=info, title='Information')
+    pp_number = info['Participant nummer']
+    datafile = 'data_allBlocks' + str(pp_number)
+    if not os.path.isfile(datafile + '.csv'): 
+        already_exists = False
+    else: 
+        gui2 = gui.Dlg(title = 'Error')
+        gui2.addText("Try another participant number")
+        gui2.show()
+
+
+
+
 
 #Create the general block array that will be used each block                    #Part 1
 #Create an array with all possible combinations 
@@ -32,7 +66,7 @@ AllOptions = np.array(np.meshgrid(FTI, Flash_Options, Target_Relative_Options)).
 
 #Add the CorResp to the array 
 n_blocktrials = AllOptions.shape[0]
-n_blocktrials = 4                      #this is added to run the experiment with only 2 trials, this for programming 
+#n_blocktrials = 4                      #this is added to run the experiment with only 2 trials, this for programming 
 CorResp = np.zeros(shape = AllOptions.shape[0])
 for i in range(AllOptions.shape[0]):          #0 = "f" / L; 1 = "j" / R
     if (AllOptions[i, 1] == "L" and AllOptions[i,2] == "S") or (AllOptions[i, 1] == "R" and AllOptions[i,2] == "O"): 
@@ -45,7 +79,7 @@ AllOptions = np.column_stack([AllOptions, Target_location])
 
 
 #define the amount of trials & blocks
-n_blocks = 2
+n_blocks = 6
 n_trials = n_blocks*n_blocktrials
 
 
@@ -54,9 +88,8 @@ n_trials = n_blocks*n_blocktrials
 
 #A. Some general stuff                                                          General stuff 
 #create window
-win = visual.Window(size = [800, 600], units = "deg", monitor = "Laptop")
-
-ResponseOptions = np.array(['f', 'j'])
+win = visual.Window(fullscr = True , units = "deg", monitor = "Laptop")
+ResponseOptions = np.array(['f', 'j', 'esc', 'escape'])
 clock = core.Clock()
 clock_check = core.Clock()
 
@@ -76,7 +109,8 @@ d1 = 0.6       #diameter outer circle (degrees)
 d2 = 0.2        #diameter inner circle (degrees)
 r1 = d1/2
 r2 = d2/2
-ppd = 25 #find formula to transpose pixels to visual degrees (here pixel per degree)
+#calculate on site: https://www.sr-research.com/visual-angle-calculator/
+ppd = 45 #find formula to transpose pixels to visual degrees (here pixel per degree)
 
 point_d = math.sqrt(r1**2/2)
 
@@ -123,7 +157,7 @@ block_fixation = np.concatenate([np.zeros(int(n_blocktrials/2)), np.ones(int(n_b
 
 
 
-n_catchtrials = 5 #number of catch trials for EACH block 
+n_catchtrials = int(n_blocktrials/10) #number of catch trials for EACH block 
 def catch_trials_selection(): 
     catch_trials = np.random.randint(0, n_blocktrials, n_catchtrials)
     return catch_trials
@@ -321,29 +355,6 @@ Resp_extra = int(round(Resp_extra_ms / FrameT))
 
 #Part 5: define functions for interaction with pp                                                               Part 5: functions for interaction with pp. 
 
-#create the gui 
-# display the gui
-info = { 'Naam': '','Gender': ['man', 'vrouw', 'derde gender'], 'Leeftijd': 0 , 'Participant nummer': 1}
-
-#define directory & datafile to store information 
-my_home_directory = os.getcwd()
-my_directory = my_home_directory + '/' + 'data_Experiment'
-if not os.path.isdir(my_directory): 
-    os.mkdir(my_directory)
-os.chdir(my_directory)
-
-# make sure no repetitions of the pp_number occur
-already_exists = True 
-while already_exists == True: 
-    info_dialogue = gui.DlgFromDict(dictionary=info, title='Information')
-    pp_number = info['Participant nummer']
-    datafile = 'data_allBlocks' + str(pp_number)
-    if not os.path.isfile(datafile + '.csv'): 
-        already_exists = False
-    else: 
-        gui2 = gui.Dlg(title = 'Error')
-        gui2.addText("Try another participant number")
-        gui2.show()
 
 # create the experimentHandler after storing the name for the greeting 
 name = info['Naam']
@@ -399,6 +410,7 @@ InstructionsP7 = str('Moest je nog vragen hebben, kom dan gerust eens kloppen bi
 
 instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5), alignText = 'left')
 instructions_image = visual.ImageStim(win, image = None, pos = (0, -0.5), units = 'norm', size = (1.9, 1))
+path = my_home_directory
 def instructions(page = 1): 
     if page == 0: 
         instructions_text.text = InstructionsP0
@@ -407,15 +419,15 @@ def instructions(page = 1):
     elif page == 1: 
         instructions_text.text = InstructionsP1
         instructions_text.pos = (0, 0.5)
-        instructions_image.image = "Instructies_Exp1.png"
+        instructions_image.image = path + "\Instructies_Exp1.png"
     elif page == 2: 
         instructions_text.text = InstructionsP2
         instructions_text.pos = (0, 0.5)
-        instructions_image.image = "Instructies_Exp2.png"
+        instructions_image.image = path + "\Instructies_Exp2.png"
     elif page == 3: 
         instructions_text.text = InstructionsP3
         instructions_text.pos = (0, 0.5)
-        instructions_image.image = "Instructies_Exp3.png"
+        instructions_image.image = path + "\Instructies_Exp3.png"
     elif page == 4: 
         instructions_text.text = InstructionsP4
         instructions_text.pos = (0, 0)
@@ -497,6 +509,10 @@ def feedback_block(durationR = FB_block_duration, block_type = 'REWARD', blockP 
 
 
 
+amplL = 5
+amplR = 5
+
+
 message(message_text = greeting)
 for i in range(0, 8): 
     instructions(page = i)
@@ -556,7 +572,7 @@ for block in range(n_blocks):
     
     #define an array with when the catch trials will appear this block: 
     catch_trials = catch_trials_selection()
-    catch_trials = np.array([2, 4]) #is even om te testen 
+    #catch_trials = np.array([2, 4]) #is even om te testen 
     
     
     #Create the trialloop
@@ -584,7 +600,12 @@ for block in range(n_blocks):
         
         #prepare the values of the stimuli for this trial
         flash_prepare(position = trial["Flash_position"])
-        target_prepare(target_loc = trial['Target_position'], left_i = left_count, right_i = right_count)
+        if trial['Target_position'] == 0: 
+            ampl = amplL
+        else: 
+            ampl = amplR
+        target_prepare(target_loc = trial['Target_position'], amplitude = 30 - ampl, 
+                       left_i = left_count, right_i = right_count)
         start_oriL, start_oriR, drift_per_frame = grating_prepare(direction = Gr_directions[this_blocktrial], 
                             start_oriA = gr_orientation_start_array[this_blocktrial, 0], start_oriB = gr_orientation_start_array[this_blocktrial, 1])
         
@@ -649,7 +670,10 @@ for block in range(n_blocks):
         else: 
             extra_time = False
         
-        if (response[0] == 'f' and trial['CorResp'] == '0.0') or (response[0] == 'j' and trial['CorResp'] == '1.0'):
+        print(response)
+        if response[0] == 'esc' or response[0] == 'escape': 
+            break 
+        elif (response[0] == 'f' and trial['CorResp'] == '0.0') or (response[0] == 'j' and trial['CorResp'] == '1.0'):
             trial_accuracy = 1
         elif (response[0] == 'f' and trial['CorResp'] != '0.0') or (response[0] == 'j' and trial['CorResp'] != '1.0'): 
             trial_accuracy = 0
@@ -665,6 +689,7 @@ for block in range(n_blocks):
             catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
                                       response = catch_response[0])
             trials.addData('catch accuracy', catch_accuracy)
+        
         
         
         #Add relevant data to the stored output_file
@@ -707,7 +732,18 @@ for block in range(n_blocks):
         trial_count = trial_count + 1
         if this_blocktrial == n_blocktrials:    #allow to run the experiment with less trials than 84 per block 
             break
+    if response[0] == 'esc' or response[0] == 'escape': 
+        break
+    
     feedback_block(durationR = FB_block_duration, block_type = this_block_type, blockP = points_this_block, 
                    totalP = points_total)
+
+message(message_text = 'Bedankt voor je deelname!')
     
 win.close()
+
+
+
+
+
+
