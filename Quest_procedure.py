@@ -7,24 +7,60 @@ Created on Tue Nov 10 15:26:33 2020
 
 """
 Remark on the staircase procedure
-- If you answer correctly, the startVal is scaled down
+* If you answer correctly, the startVal is scaled down
   --> scaled up = more easy in  our case
   --> should work with 30-ampl: then if correct answer, will be harder; wrong answer will be more easy 
+Information
+* for less trials: change n_stair_trials 
+   - = total amount of trials (for staircase 1 & 2 together)
+* quitting the staircase is possible: press 'escape' when allowed to respond 
+* screen is at fullScreen now!
+   - same problem with ppd: should be adapted to monitor values
+* speedy = 1: then staircases can be tested without displaying all the visual stuff
+   - just look at the output file & the adapted values for 'amplitude L & R'
+   - response is automatically 'f' when speedy = 1 
 """
 
 import numpy as np
 import math, time, os, pandas
-from psychopy import visual, data, core, event
+from psychopy import visual, data, core, event, gui
 
 #allows to play with the staircases: only the staircases are executed, rest is skipped
-speedy = 1
+speedy = 0
+
+n_stair_trials = 60
 
 #%%Create the relevant stimuli & functions
+#create the gui 
+# display the gui
+info = { 'Naam': '','Gender': ['man', 'vrouw', 'derde gender'], 'Leeftijd': 0 , 'Participant nummer': 1}
+
+#define directory & datafile to store information 
+my_home_directory = os.getcwd()
+my_directory = my_home_directory + '/' + 'data_StairCase'
+if not os.path.isdir(my_directory): 
+    os.mkdir(my_directory)
+os.chdir(my_directory)
+
+# make sure no repetitions of the pp_number occur
+already_exists = True 
+while already_exists == True: 
+    info_dialogue = gui.DlgFromDict(dictionary=info, title='Information')
+    pp_number = info['Participant nummer']
+    datafile = 'StairCase' + str(pp_number)
+    if not os.path.isfile(datafile + '.csv'): 
+        already_exists = False
+    else: 
+        gui2 = gui.Dlg(title = 'Error')
+        gui2.addText("Try another participant number")
+        gui2.show()
+
+
 
 #create window
-win = visual.Window(size = [800, 600], units = "deg", monitor = "Laptop")
+win = visual.Window(fullscr = True, units = "deg", monitor = "Laptop")
 
-ResponseOptions = np.array(['f', 'j'])
+ResponseOptions = np.array(['f', 'j', 'esc', 'escape'])
 clock = core.Clock()
 clock_check = core.Clock()
 
@@ -67,6 +103,11 @@ def fixation_set_position(x = 0, y = 0, fix_type = 'plus'):
         line_d1.vertices = ((-point_d+x, -point_d+y),(point_d+x, point_d+y))
         line_d2.vertices = ((-point_d+x, point_d+y), (point_d+x, -point_d+y))
 
+fixation_types = np.array(['plus', 'cross'])
+#create an array to shuffle each block for 50% cross and 50% plus fixation cross 
+block_fixation = np.concatenate([np.zeros(int(n_stair_trials/2)), np.ones(int(n_stair_trials/2))])
+#0 = plus, 1 = cross!
+
 def fixation_draw(fix = 'plus'):             #draws the fixation, does not flip it yet!
     if fix == 'plus': 
         dot_b.draw()
@@ -78,6 +119,51 @@ def fixation_draw(fix = 'plus'):             #draws the fixation, does not flip 
         line_d1.draw()
         line_d2.draw()
         dot_s.draw()
+
+n_catchtrials = int(n_stair_trials/10) #number of catch trials for EACH block 
+def catch_trials_selection(): 
+    catch_trials = np.random.randint(0, n_stair_trials, n_catchtrials)
+    return catch_trials
+
+catch_question = visual.TextStim(win, text = str('Welk fixatiekruis heb je voor het laatst gezien: Het linker'
+                                                 + ' of het rechter? \n Druk \'f\' als je links denkt,'
+                                                 +'\'j\' als je rechts denkt'), pos = (0, 0.5), 
+                                 wrapWidth = 1.9, units = 'norm')
+
+#to display the catch trial, retutns the response that was given
+#left = plus (f), right = cross (j)
+catch_fix_positions = np.array([-4, 4])
+def catch_trial(): 
+    catch_question.draw()
+    #draw the left fixation: plus
+    for i, pos in enumerate(catch_fix_positions): 
+        fixation_set_position(x = pos, y = 0, fix_type = fixation_types[i])
+        fixation_draw(fix = fixation_types[i])
+    win.flip()
+    catch_response = event.waitKeys(keyList = ResponseOptions)
+    for i in range(2): 
+        fixation_set_position(x = 0, y = 0, fix_type = fixation_types[i])
+    return catch_response
+
+
+#allow to display FB on the catch trial 
+FB_catch_correct = visual.TextStim(win, text = 'Juist')
+FB_catch_wrong = visual.TextStim(win, text = 'Fout, probeer tijdens de trial te fixeren op het fixatiekruis')
+
+def feedback_catch(correct_button = 0, response = None): 
+    if response == correct_button: 
+        FB_catch_correct.draw()
+        accuracy = 1
+        duration = 0.5
+    else: 
+        FB_catch_wrong.draw()
+        accuracy = 0
+        duration = 2 
+    win.flip()
+    core.wait(duration)
+    return accuracy
+
+
 
 
 #C. Create a function for the drifting gratings                                 Drifting gratings
@@ -178,7 +264,7 @@ InstructionsP5 = str('Moest je nog vragen hebben, kom dan gerust eens kloppen bi
 
 instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5), alignText = 'left')
 instructions_image = visual.ImageStim(win, image = None, pos = (0, -0.5), units = 'norm', size = (1.9, 1))
-
+path = my_home_directory
 def instructions_stair(page = 1): 
     if page == 0: 
         instructions_text.text = InstructionsP0
@@ -187,11 +273,11 @@ def instructions_stair(page = 1):
     elif page == 1: 
         instructions_text.text = InstructionsP1
         instructions_text.pos = (0, 0.5)
-        instructions_image.image = "Instructies_Exp1.png"
+        instructions_image.image = path + "\Instructies_Exp1.png"
     elif page == 2: 
         instructions_text.text = InstructionsP2
         instructions_text.pos = (0, 0.5)
-        instructions_image.image = "Instructies_Exp3.png"
+        instructions_image.image = path + "\Instructies_Exp3.png"
     elif page == 3: 
         instructions_text.text = InstructionsP3
         instructions_text.pos = (0, 0)
@@ -234,7 +320,6 @@ Resp_extra = int(round(Resp_extra_ms / FrameT))
 #%% Create the array for staircase
 
 #create the array for the staircase procedure
-n_stair_trials = 60
 Gr_start_stair = np.random.randint(Gr_start_limits[0], Gr_start_limits[1], n_stair_trials)   #the amount of frames before gratings appear 
 Gr_T_interval_stair = np.random.randint(T_start_limits[0], T_start_limits[1], n_stair_trials)   #the amount of frames before gratings appear 
 T_start_stair = Gr_start_stair + Gr_T_interval_stair
@@ -250,8 +335,7 @@ Stair_array = np.column_stack([Gr_start_stair, Gr_T_interval_stair, T_start_stai
 
 
 #create experimenthandler
-file_stair = "QUEST_output"
-thisExp = data.ExperimentHandler(dataFileName = file_stair)
+thisExp = data.ExperimentHandler(dataFileName = datafile)
 
 Stair_DF = pandas.DataFrame.from_records(Stair_array)     
 Stair_DF.columns = ['Grating onset', 'Grating - Target interval', 'Target onset', 'Grating orientation A', 
@@ -272,12 +356,16 @@ fixation_set_position(x = 0, y = 0, fix_type = 'plus')
 
 
 thisExp.addLoop(trials)
-fixation_set_position(x = 0, y = 0, fix_type = 'plus')
 
 if speedy == 0: 
     for i in range(0, 6):
         instructions_stair(page = i)
 
+np.random.shuffle(block_fixation)
+print(block_fixation)
+catch_trials = catch_trials_selection()
+catch_trials = np.array([1, 2, 3, 4, 5])
+this_stair_trial = 0
 for trial in trials: 
     grating_prepare(start_oriA = trial['Grating orientation A'], start_oriB = trial['Grating orientation B'])
     
@@ -290,6 +378,10 @@ for trial in trials:
     #prepare for the actual staircase
     response_RT = None
     response = None
+    
+    fix_type_bin = int(block_fixation[this_stair_trial])
+    fix_type = fixation_types[fix_type_bin]
+    fixation_set_position(x = 0, y = 0, fix_type = fix_type)
     
     if trial['Target hemifield'] == 0: 
         ampl = staircase1._nextIntensity
@@ -305,7 +397,7 @@ for trial in trials:
         response = np.array(['f'])
     else: 
         for Frame in range(MaxFrames): 
-            fixation_draw()
+            fixation_draw(fix = fix_type)
             if Frame >= Gr_showtime: 
                 grating_draw()      #function that adapts the orientation of the gratings & draws these 
             if Frame >= T_showtime and Frame < T_disappeartime: 
@@ -337,7 +429,9 @@ for trial in trials:
     
     #define the accuracy 
     CorResp = trial['Correct response']
-    if ResponseOptions[CorResp] == response[0]: 
+    if response[0] == 'esc' or response[0] == 'escape': 
+        break
+    elif ResponseOptions[CorResp] == response[0]: 
         trial_accuracy, stair_accuracy = 1, 1
     elif response[0] == -1: 
         pass
@@ -346,7 +440,11 @@ for trial in trials:
     
     if speedy == 0: 
         feedback_trial(accuracy = trial_accuracy)
-    
+        if this_stair_trial in catch_trials: 
+            catch_response = catch_trial()
+            catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
+                                      response = catch_response[0])
+            trials.addData('catch accuracy', catch_accuracy)
     #store the accuracy for the staircase
     if trial['Target hemifield'] == 0: 
         #hier de staircase aanpassen 
@@ -361,5 +459,6 @@ for trial in trials:
     trials.addData('Accuracy', trial_accuracy)
     
     thisExp.nextEntry()
+    this_stair_trial += 1
 
 win.close()
