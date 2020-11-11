@@ -5,10 +5,19 @@ Created on Tue Nov 10 15:26:33 2020
 @author: Maud
 """
 
+"""
+Remark on the staircase procedure
+- If you answer correctly, the startVal is scaled down
+  --> scaled up = more easy in  our case
+  --> should work with 30-ampl: then if correct answer, will be harder; wrong answer will be more easy 
+"""
+
 import numpy as np
 import math, time, os, pandas
 from psychopy import visual, data, core, event
 
+#allows to play with the staircases: only the staircases are executed, rest is skipped
+speedy = 1
 
 #%%Create the relevant stimuli & functions
 
@@ -137,6 +146,70 @@ extra_response_screen = visual.TextStim(win, text = 'Antwoord!')
 
 
 
+#%%Staircase_instructions
+
+spatie = '\n\n(Druk op spatie om verder te gaan)'
+InstructionsP0 = str('Instructies: In deze taak zal je de locatie van een target (links of rechts) aangeven.'
+                     +'De target verschijnt steeds in 1 van 2 gepresenteerde gratings (links & rechts).'
+                     + 'De taak wordt in meer detail uitgelegd op volgende pagina\'s.' + spatie)
+InstructionsP1 = str('\nElke trial zal beginnen met een fixatiekruis. Hiernaast zullen 2  '
+                     + 'gratings verschijnen. Probeer je aandacht naar deze 2 gratings te richten, maar kijk ' 
+                     + 'vooral steeds naar het fixatiekruis. Probeer dus geen oogbewegingen te maken.'
+                     + spatie)
+InstructionsP2 = str('Het doel is de detectie van een target in één van de 2 gratings. De target verschijnt '
+                     + 'maar voor een heel korte periode. Er is telkens evenveel kans ' 
+                     + 'dat de target in de ene als de andere grating verschijnt. Geef aan in welke grating de ' 
+                     + 'target verscheen met de toetsen f en j: \n\'f\' = LINKS      \'j\' = RECHTS.'
+                     + '\nDoe dit zo ACCURAAT mogelijk.' + spatie)
+InstructionsP3 = str('Geef ALTIJD een antwoord, ook als je de target niet hebt gezien. Antwoorden is mogelijk '
+                     + 'vanaf de target is verschenen. Wanneer \'Antwoord!\' op het scherm verschijnt is je '
+                     + 'tijd om te antwoorden bijna om. Geef dan zo snel mogelijk een antwoord.'
+                     + spatie)
+InstructionsP4 = str('Korte samenvatting van de belangrijkste zaken: '
+                     + '\n     - Kijk steeds naar het fixatiekruis'
+                     + '\n     - Target altijd 50% kans om L als R te verschijnen'
+                     + '\n     - Antwoordopties: links = \'f\', rechts = \'j\''
+                     + '\n     - Geef ELKE TRIAL een antwoord'
+                     + spatie)
+InstructionsP5 = str('Moest je nog vragen hebben, kom dan gerust eens kloppen bij de proefleider. Deze helpt '
+                     +'je zeer graag verder. Als je geen vragen meer hebt, gelieve dan je hoofd op de '
+                     + 'hoofdsteun te leggen en vergeet niet steeds naar het fixatiekruis te kijken. Succes.' 
+                     + spatie)
+
+instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5), alignText = 'left')
+instructions_image = visual.ImageStim(win, image = None, pos = (0, -0.5), units = 'norm', size = (1.9, 1))
+
+def instructions_stair(page = 1): 
+    if page == 0: 
+        instructions_text.text = InstructionsP0
+        instructions_text.pos = (0, 0)
+        instructions_image.image = None
+    elif page == 1: 
+        instructions_text.text = InstructionsP1
+        instructions_text.pos = (0, 0.5)
+        instructions_image.image = "Instructies_Exp1.png"
+    elif page == 2: 
+        instructions_text.text = InstructionsP2
+        instructions_text.pos = (0, 0.5)
+        instructions_image.image = "Instructies_Exp3.png"
+    elif page == 3: 
+        instructions_text.text = InstructionsP3
+        instructions_text.pos = (0, 0)
+        instructions_image.image = None
+    elif page == 4: 
+        instructions_text.text = InstructionsP4
+        instructions_text.pos = (0, 0)
+        instructions_image.image = None
+    elif page == 5: 
+        instructions_text.text = InstructionsP5
+        instructions_image.image = None
+    instructions_text.draw()
+    instructions_image.draw()
+    win.flip()
+    event.waitKeys(keyList = 'space')
+
+
+
 #%%The timings etc.
 
 FrameT = 1000/60
@@ -161,7 +234,7 @@ Resp_extra = int(round(Resp_extra_ms / FrameT))
 #%% Create the array for staircase
 
 #create the array for the staircase procedure
-n_stair_trials = 10
+n_stair_trials = 60
 Gr_start_stair = np.random.randint(Gr_start_limits[0], Gr_start_limits[1], n_stair_trials)   #the amount of frames before gratings appear 
 Gr_T_interval_stair = np.random.randint(T_start_limits[0], T_start_limits[1], n_stair_trials)   #the amount of frames before gratings appear 
 T_start_stair = Gr_start_stair + Gr_T_interval_stair
@@ -187,8 +260,8 @@ Stair_TL = pandas.DataFrame.to_dict(Stair_DF, orient = "records")
 trials = data.TrialHandler(trialList = Stair_TL, nReps = 1, method = "random")
 
 #%%Create QuestHandler
-staircase1 = data.QuestHandler(startVal = 25, startValSd = 10, nTrials = n_stair_trials, pTreshold = 0.70)
-
+staircase1 = data.QuestHandler(startVal = 5, startValSd = 1, nTrials = n_stair_trials/2, pTreshold = 0.70)
+staircase2 = data.QuestHandler(startVal = 5, startValSd = 1, nTrials = n_stair_trials/2, pTreshold = 0.70)
 
 
 
@@ -200,6 +273,10 @@ fixation_set_position(x = 0, y = 0, fix_type = 'plus')
 
 thisExp.addLoop(trials)
 fixation_set_position(x = 0, y = 0, fix_type = 'plus')
+
+if speedy == 0: 
+    for i in range(0, 6):
+        instructions_stair(page = i)
 
 for trial in trials: 
     grating_prepare(start_oriA = trial['Grating orientation A'], start_oriB = trial['Grating orientation B'])
@@ -214,40 +291,49 @@ for trial in trials:
     response_RT = None
     response = None
     
-    ampl = staircase1._nextIntensity
+    if trial['Target hemifield'] == 0: 
+        ampl = staircase1._nextIntensity
+        trials.addData('Amplitude T Left', ampl)
+    else: 
+        ampl = staircase2._nextIntensity
+        trials.addData('Amplitude T Right', ampl)
     
     #amplitude based on staircase
-    target_prepare(target_loc = trial['Target hemifield'], amplitude = ampl, left_i = left_count, right_i = right_count)
+    target_prepare(target_loc = trial['Target hemifield'], amplitude = 30 - ampl, left_i = left_count, right_i = right_count)
     
-    for Frame in range(MaxFrames): 
-        fixation_draw()
-        if Frame >= Gr_showtime: 
-            grating_draw()      #function that adapts the orientation of the gratings & draws these 
-        if Frame >= T_showtime and Frame < T_disappeartime: 
-            target_template.draw()
-        if Frame == T_showtime: 
-            event.clearEvents(eventType = 'keyboard')
-        win.flip()
-        if Frame == T_showtime: 
-            clock.reset()
-        if Frame >= T_showtime: 
-            response = event.getKeys(keyList = ResponseOptions, timeStamped = clock)
-            response = np.array(response).squeeze()
-            if len(response) != 0: 
-                break 
-    #allow for extra response time if no response has been given yet 
-    if len(response) == 0: 
-        extra_response_screen.draw()
-        win.flip()
-        response = event.waitKeys(keyList = ResponseOptions, maxWait = Resp_extra_ms/1000, timeStamped = clock)
-        response = np.array(response).squeeze()
-        if np.all(response == None): 
-            response = np.array([-1, -1])
-            trial_accuracy, stair_accuracy = -1, 0 #for staircase make the accuracy 0 instead of -1 
-                #has to be -1 for the correct feedback
-            extra_time = True
+    if speedy == 1: 
+        response = np.array(['f'])
     else: 
-        extra_time = False
+        for Frame in range(MaxFrames): 
+            fixation_draw()
+            if Frame >= Gr_showtime: 
+                grating_draw()      #function that adapts the orientation of the gratings & draws these 
+            if Frame >= T_showtime and Frame < T_disappeartime: 
+                target_template.draw()
+            if Frame == T_showtime: 
+                event.clearEvents(eventType = 'keyboard')
+            win.flip()
+            if Frame == T_showtime: 
+                clock.reset()
+            if Frame >= T_showtime: 
+                response = event.getKeys(keyList = ResponseOptions, timeStamped = clock)
+                response = np.array(response).squeeze()
+                if len(response) != 0: 
+                    break 
+            
+        #allow for extra response time if no response has been given yet 
+        if len(response) == 0: 
+            extra_response_screen.draw()
+            win.flip()
+            response = event.waitKeys(keyList = ResponseOptions, maxWait = Resp_extra_ms/1000, timeStamped = clock)
+            response = np.array(response).squeeze()
+            if np.all(response == None): 
+                response = np.array([-1, -1])
+                trial_accuracy, stair_accuracy = -1, 0 #for staircase make the accuracy 0 instead of -1 
+                    #has to be -1 for the correct feedback
+                extra_time = True
+        else: 
+            extra_time = False
     
     #define the accuracy 
     CorResp = trial['Correct response']
@@ -258,23 +344,22 @@ for trial in trials:
     else: 
         trial_accuracy, stair_accuracy = 0, 0
     
-    feedback_trial(accuracy = trial_accuracy)
+    if speedy == 0: 
+        feedback_trial(accuracy = trial_accuracy)
     
     #store the accuracy for the staircase
     if trial['Target hemifield'] == 0: 
-        #hier de accuracy & de amplitude aanpassen denk ik 
+        #hier de staircase aanpassen 
         left_count = left_count + 1
+        staircase1.addResponse(stair_accuracy)
     else: 
-        #hier de accuracy & amplitude aanpassen denk ik 
+        #hier de staircase aanpassen 
         right_count = right_count + 1
+        staircase2.addResponse(stair_accuracy)
     
     trials.addData('Response', response[0])
     trials.addData('Accuracy', trial_accuracy)
-    trials.addData('Amplitude T', ampl)
     
-    print(ampl, stair_accuracy)
-    staircase1.addResponse(stair_accuracy)
-    ampl = staircase1._nextIntensity
     thisExp.nextEntry()
 
 win.close()
