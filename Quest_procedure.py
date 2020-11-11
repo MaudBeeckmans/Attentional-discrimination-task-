@@ -187,6 +187,7 @@ Stair_TL = pandas.DataFrame.to_dict(Stair_DF, orient = "records")
 trials = data.TrialHandler(trialList = Stair_TL, nReps = 1, method = "random")
 
 #%%Create QuestHandler
+staircase1 = data.QuestHandler(startVal = 25, startValSd = 10, nTrials = n_stair_trials, pTreshold = 0.70)
 
 
 
@@ -199,6 +200,7 @@ fixation_set_position(x = 0, y = 0, fix_type = 'plus')
 
 thisExp.addLoop(trials)
 fixation_set_position(x = 0, y = 0, fix_type = 'plus')
+
 for trial in trials: 
     grating_prepare(start_oriA = trial['Grating orientation A'], start_oriB = trial['Grating orientation B'])
     
@@ -212,7 +214,10 @@ for trial in trials:
     response_RT = None
     response = None
     
-    target_prepare(target_loc = trial['Target hemifield'], left_i = left_count, right_i = right_count)
+    ampl = staircase1._nextIntensity
+    
+    #amplitude based on staircase
+    target_prepare(target_loc = trial['Target hemifield'], amplitude = ampl, left_i = left_count, right_i = right_count)
     
     for Frame in range(MaxFrames): 
         fixation_draw()
@@ -238,7 +243,7 @@ for trial in trials:
         response = np.array(response).squeeze()
         if np.all(response == None): 
             response = np.array([-1, -1])
-            trial_accuracy = -1 #for staircase make the accuracy 0 instead of -1 
+            trial_accuracy, stair_accuracy = -1, 0 #for staircase make the accuracy 0 instead of -1 
                 #has to be -1 for the correct feedback
             extra_time = True
     else: 
@@ -247,11 +252,11 @@ for trial in trials:
     #define the accuracy 
     CorResp = trial['Correct response']
     if ResponseOptions[CorResp] == response[0]: 
-        trial_accuracy = 1
+        trial_accuracy, stair_accuracy = 1, 1
     elif response[0] == -1: 
         pass
     else: 
-        trial_accuracy = 0
+        trial_accuracy, stair_accuracy = 0, 0
     
     feedback_trial(accuracy = trial_accuracy)
     
@@ -265,6 +270,11 @@ for trial in trials:
     
     trials.addData('Response', response[0])
     trials.addData('Accuracy', trial_accuracy)
+    trials.addData('Amplitude T', ampl)
+    
+    print(ampl, stair_accuracy)
+    staircase1.addResponse(stair_accuracy)
+    ampl = staircase1._nextIntensity
     thisExp.nextEntry()
 
 win.close()
