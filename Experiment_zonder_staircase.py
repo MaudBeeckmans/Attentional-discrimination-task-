@@ -217,21 +217,11 @@ GratingB = visual.GratingStim(win, tex = 'sin', mask = 'circle', sf = sf_grating
 framerate = 60
 
 #change "Frame = 0" to the thing you iterate over in the loop!
-def grating_prepare(start_oriA = 0, start_oriB = 0, driftRate = 0.7, direction = 0):
-        #standard for start_oriA & B = random location (this can be used to define where to start) (= the first appearance in each trial should be standard)
-        #change "Frame = 0" to the thing you iterate over in the loop!
-    drift_per_frame = 180*driftRate / framerate   #1 cycle = 180; 0.7 = the wanted drift amount per second; framerate = we flip every frame
-    if direction == 0: 
-        drift_per_frame = -drift_per_frame
-    else: 
-        drift_per_frame = drift_per_frame
+def grating_prepare(start_oriA = 0, start_oriB = 0):
     GratingA.ori = start_oriA 
     GratingB.ori = start_oriB 
-    return start_oriA, start_oriB, drift_per_frame
 
 def grating_draw(): 
-    GratingA.ori+= drift_per_frame
-    GratingB.ori+= drift_per_frame
     GratingA.draw()
     GratingB.draw()
 
@@ -369,7 +359,7 @@ thisExp = data.ExperimentHandler(dataFileName = file_name, extraInfo = info)
 
 #define the feedback & the instructions
 points_per_euro = 1000
-points_per_trial = 10
+points_per_trial = 15
 
 
 #The instructions (in Dutch)
@@ -606,8 +596,7 @@ for block in range(n_blocks):
             ampl = amplR
         target_prepare(target_loc = trial['Target_position'], amplitude = 30 - ampl, 
                        left_i = left_count, right_i = right_count)
-        start_oriL, start_oriR, drift_per_frame = grating_prepare(direction = Gr_directions[this_blocktrial], 
-                            start_oriA = gr_orientation_start_array[this_blocktrial, 0], start_oriB = gr_orientation_start_array[this_blocktrial, 1])
+        grating_prepare(start_oriA = gr_orientation_start_array[this_blocktrial, 0], start_oriB = gr_orientation_start_array[this_blocktrial, 1])
         
         #prepare the start- and end-points for this trial
         start_grating = Gr_start[this_blocktrial]
@@ -705,8 +694,6 @@ for block in range(n_blocks):
         trials.addData('Total points', points_total)
         trials.addData('Block points', points_this_block)
         trials.addData('Grating direction', Gr_directions[this_blocktrial])
-        trials.addData('Start ori grating L', start_oriL)
-        trials.addData('Start ori grating R', start_oriR)
         trials.addData('Grating start F', Gr_start[this_blocktrial])
         trials.addData('Flash start F', Fl_start[this_blocktrial])
         trials.addData('Target start F', T_start[this_blocktrial])
@@ -741,9 +728,3 @@ for block in range(n_blocks):
 message(message_text = 'Bedankt voor je deelname!')
     
 win.close()
-
-
-
-
-
-
