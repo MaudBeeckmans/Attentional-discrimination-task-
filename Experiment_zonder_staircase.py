@@ -278,7 +278,7 @@ def create_target_positions(size = n_blocktrials):
 target_template =visual.GratingStim(win=win,tex='sin', mask='gauss',ori=0, sf=1.4, pos=(1,1), size= (1,1), interpolate=False)
 left_count = 0
 right_count = 0
-def target_prepare(target_loc = '0.0', amplitude = 5, left_i = left_count, right_i = right_count):         #target location: '0.0' = L, '1.0' = R
+def target_prepare(target_loc = '0.0', amplitude = 15, left_i = left_count, right_i = right_count):         #target location: '0.0' = L, '1.0' = R
                                                                                                         #corresponds with trial['Target_hemifield']
     if target_loc == '0.0': 
         target_position = t_left_pos[left_i, :]
@@ -359,27 +359,80 @@ thisExp = data.ExperimentHandler(dataFileName = file_name, extraInfo = info)
 #define the feedback & the instructions
 points_per_euro = 1000
 points_per_trial = 10
-greeting = "Hello " + name + "\nPress \"space\" to continue."
-instructions_staircase1A = str("In this part of the experiment you will see 2 gratings, 1 on either side of the screen. \nAfter appearance of the gratings," 
-                            + " another small grating (the target) will appear inside 1 of these bigger gratings. \nThe goal is to detect this target and"
-                            + " report inside which grating the target appeared by pressing \'f\' or \'j\'. \nPress \'f\' if the target occured in the LEFT"
-                            + " grating, \'j\' if the target occured in the RIGHT grating.")
-instructions_staircase1B = str("Press space to continue")
-instructions_staircase2 = str("\nCould you please rest your head on the chin rest and try to fixate at the fixation point throughout all the trials." 
-                            + "\n\n Press space to continue")
-instructions_experiment_P1 = str("This is the real experiment. Here again you will see 2 gratings, 1 on either side of the screen." 
-                            + "\nAfter appearance of the gratings, another small grating (the target) will appear inside 1 of these bigger gratings."
-                            +"\nThe goal is to detect this target and report inside which grating the target appeared by pressing \'f\' or \'j\'."
-                            + "\nPress \'f\' if the target occured in the LEFT grating, \'j\' if the target occured in the RIGHT grating." 
-                            + "\n\n Press space to go to the next page")
-instructions_experiment_P2 = str("\n\nIMPORTANT: An irrelevant flash will accur around 1 of the gratings as well, try to ignore this."
-                            + "\n\nBoth REWARD and NON REWARD blocks will be presented to you. In the REWARD blocks you gain " + str(points_per_trial)
-                            + " for each CORRECT answer." + " For every " + str(points_per_euro) + " points gained at the end of the experiment,"
-                            + " you will receive 1 EUR."
-                            + "\n\nCould you please rest your head on the chin rest and try to fixate at the fixation point throughout all the trials."
-                            + "\n\n Press space to continue")
 
 
+#The instructions (in Dutch)
+spatie = '\n\n(Druk op spatie om verder te gaan)'
+greeting = "Hallo " + name + spatie
+InstructionsP0 = str('Instructies: Het doel van de taak zal zijn een target te detecteren in 1 van 2 gepresenteerde '
+                     +'gratings. De taak wordt in meer detail uitgelegd op volgende pagina\'s.' + spatie)
+InstructionsP1 = str('\nElke trial zal beginnen met een fixatiekruis. Hiernaast zullen 2  '
+                     + 'gratings verschijnen. Probeer je aandacht naar deze 2 gratings te richten, maar kijk ' 
+                     + 'vooral steeds naar het fixatiekruis. Probeer dus geen oogbewegingen te maken.'
+                     + spatie)
+InstructionsP2 = str('Tijdens elke trial zal een flash rond één van de gratings verschijnen. Deze is totaal ' 
+                     'IRRELEVANT voor de taak, probeer deze dus zo goed mogelijk te negeren.' + spatie)
+InstructionsP3 = str('Het doel is de detectie van een target in één van de 2 gratings. Er is telkens evenveel kans ' 
+                     + 'dat de target in de ene als de andere grating verschijnt. Geef aan in welke grating de ' 
+                     + 'target verscheen met de toetsen f en j: \n\'f\' = LINKS      \'j\' = RECHTS.'
+                     + '\nDoe dit zo snel, maar vooral ook zo ACCURAAT mogelijk.' + spatie)
+InstructionsP4 = str('Geef ALTIJD een antwoord, ook als je de target niet hebt gezien. Antwoorden is mogelijk '
+                     + 'vanaf de target is verschenen. Wanneer \'Antwoord!\' op het scherm verschijnt is je '
+                     + 'tijd om te antwoorden bijna om. Geef dan zo snel mogelijk een antwoord.'
+                     + spatie)
+InstructionsP5 = str('Je zal zowel REWARD als NON REWARD blokken maken. In de REWARD blokken kan je punten verdienen:'
+                     + '{} punten per correct antwoord. Per {} punten win je 1 EUR.'.format(points_per_trial, points_per_euro)
+                     + 'In de NON REWARD blokken kan je geen punten verdienen. Aan het begin van elk blok wordt '
+                     + 'het type blok aangegeven.' + spatie)
+InstructionsP6 = str('Korte samenvatting van de belangrijkste zaken: '
+                     + '\n     - Kijk steeds naar het fixatiekruis'
+                     + '\n     - Negeer de flash'
+                     + '\n     - Target altijd 50% kans om L als R te verschijnen'
+                     + '\n     - Antwoordopties: links = \'f\', rechts = \'j\''
+                     + '\n     - Geef ELKE TRIAL een antwoord'
+                     + '\n     - REWARD blok: correct = punten (geld) verdienen'
+                     + spatie)
+InstructionsP7 = str('Moest je nog vragen hebben, kom dan gerust eens kloppen bij de proefleider. Deze helpt '
+                     +'je zeer graag verder. Als je geen vragen meer hebt, gelieve dan je hoofd op de '
+                     + 'hoofdsteun te leggen en vergeet niet steeds naar het fixatiekruis te kijken. Succes.' 
+                     + spatie)
+
+instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5), alignText = 'left')
+instructions_image = visual.ImageStim(win, image = None, pos = (0, -0.5), units = 'norm', size = (1.9, 1))
+def instructions(page = 1): 
+    if page == 0: 
+        instructions_text.text = InstructionsP0
+        instructions_text.pos = (0, 0)
+        instructions_image.image = None
+    elif page == 1: 
+        instructions_text.text = InstructionsP1
+        instructions_text.pos = (0, 0.5)
+        instructions_image.image = "Instructies_Exp1.png"
+    elif page == 2: 
+        instructions_text.text = InstructionsP2
+        instructions_text.pos = (0, 0.5)
+        instructions_image.image = "Instructies_Exp2.png"
+    elif page == 3: 
+        instructions_text.text = InstructionsP3
+        instructions_text.pos = (0, 0.5)
+        instructions_image.image = "Instructies_Exp3.png"
+    elif page == 4: 
+        instructions_text.text = InstructionsP4
+        instructions_text.pos = (0, 0)
+        instructions_image.image = None
+    elif page == 5: 
+        instructions_text.text = InstructionsP5
+        instructions_image.image = None
+    elif page == 6: 
+        instructions_text.text = InstructionsP6
+        instructions_image.image = None
+    elif page == 7: 
+        instructions_text.text = InstructionsP7
+        instructions_image.image = None
+    instructions_text.draw()
+    instructions_image.draw()
+    win.flip()
+    event.waitKeys(keyList = 'space')
 
 
 #Create the sequence of the blocks (counterbalanced over pp.)
@@ -444,22 +497,9 @@ def feedback_block(durationR = FB_block_duration, block_type = 'REWARD', blockP 
 
 
 
-
-
-
-
-
-
 message(message_text = greeting)
-message(message_text = instructions_staircase1A, flip = False, position = (0, 0.5))
-#design_pic.draw()
-message(message_text = instructions_staircase1B, flip = False, position = (0, -0.9))
-win.flip()
-if speedy == 1: 
-    core.wait(0.1)
-else: 
-    event.waitKeys(keyList = "space")
-message(message_text = instructions_staircase2)
+for i in range(0, 8): 
+    instructions(page = i)
 
 points_total = 0
 trial_count = 0
@@ -481,12 +521,12 @@ for block in range(n_blocks):
     
     #Define the timings that variate per block 
     Gr_start_array = np.random.randint(Gr_start_limits[0], Gr_start_limits[1], AllOptions.shape[0])   #the amount of frames before gratings appear 
-    print(Gr_start_array)
+    #print(Gr_start_array)
         #problem: returns values of 29 as well, how is this possible???                                     !!!!!!!!!!!
         #think it is okay cause python starts counting from 0 onwards
         ##To get Random integers array of type NumPy int between low and high, inclusive.
     Gr_Fl_array = np.random.randint(Gr_Fl_limits[0], Gr_Fl_limits[1], AllOptions.shape[0]) #amount of frames between Grating & Flash 
-    print(Gr_Fl_array)
+    #print(Gr_Fl_array)
     FTI_array = Block_array[:, 0] #amount of frames between flash & target appearance 
     FTI_array = FTI_array.astype(int)         #make sure the values stored are floats, to be able to add with another array later on 
     #Define all the total Frames for each trial for this block 
@@ -594,6 +634,7 @@ for block in range(n_blocks):
                 if len(response) != 0:
                     break 
         print('Overall, %i frames were dropped.' % win.nDroppedFrames)
+        total_frames_dropped = win.nDroppedFrames
         win.recordFrameIntervals = False
         #allow for extra response time if no response is given yet
         if len(response) == 0:
@@ -651,6 +692,7 @@ for block in range(n_blocks):
         trials.addData('Fl stop T', Fl_stopT)
         trials.addData('T appear T', T_appearT)
         trials.addData('T stop T', T_stopT)
+        trials.addData('Total Dropped Frames', total_frames_dropped)
         
         
         #allow to store the next entry 
@@ -669,9 +711,3 @@ for block in range(n_blocks):
                    totalP = points_total)
     
 win.close()
-
-
-
-
-
-
