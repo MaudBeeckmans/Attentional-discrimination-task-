@@ -81,5 +81,5 @@ for i in range(t_left_pos.shape[0]):
         print('target NOT located at {}')
 
 
-
+win.close()
 
