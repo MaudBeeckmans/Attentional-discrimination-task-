@@ -20,10 +20,12 @@ Some information:
 from psychopy import visual, data, event, core, gui
 import os, pandas, math
 import numpy as np
+from Target_positions_function import create_target_positions
 
 #allow to speed through the experiment
 speedy = 0
 
+stair_contrast = 1
 #create the gui 
 # display the gui
 info = { 'Naam': '','Gender': ['man', 'vrouw', 'derde gender'], 'Leeftijd': 0 , 'Participant nummer': 1}
@@ -40,7 +42,7 @@ already_exists = True
 while already_exists == True: 
     info_dialogue = gui.DlgFromDict(dictionary=info, title='Information')
     pp_number = info['Participant nummer']
-    datafile = 'data_allBlocks' + str(pp_number)
+    datafile = 'Experimental_data' + str(pp_number)
     if not os.path.isfile(datafile + '.csv'): 
         already_exists = False
     else: 
@@ -48,9 +50,10 @@ while already_exists == True:
         gui2.addText("Try another participant number")
         gui2.show()
 
-
-
-
+load_directory = 'C:\\Users\\Maud\\Documents\\Psychologie\\1ste_master_psychologie\\RPEP\\Experiment\\Eindproduct\\data_StairCase'
+stair_opacityL, stair_opacityR = np.load(load_directory + '\Stair_opacity' + str(pp_number) + '.npy')
+print(stair_opacityL, stair_opacityR)
+#%%
 
 #Create the general block array that will be used each block                    #Part 1
 #Create an array with all possible combinations 
@@ -66,7 +69,7 @@ AllOptions = np.array(np.meshgrid(FTI, Flash_Options, Target_Relative_Options)).
 
 #Add the CorResp to the array 
 n_blocktrials = AllOptions.shape[0]
-#n_blocktrials = 4                      #this is added to run the experiment with only 2 trials, this for programming 
+#n_blocktrials = 8                      #this is added to run the experiment with less trials per blok, this for programming 
 CorResp = np.zeros(shape = AllOptions.shape[0])
 for i in range(AllOptions.shape[0]):          #0 = "f" / L; 1 = "j" / R
     if (AllOptions[i, 1] == "L" and AllOptions[i,2] == "S") or (AllOptions[i, 1] == "R" and AllOptions[i,2] == "O"): 
@@ -79,7 +82,7 @@ AllOptions = np.column_stack([AllOptions, Target_location])
 
 
 #define the amount of trials & blocks
-n_blocks = 6
+n_blocks = 2
 n_trials = n_blocks*n_blocktrials
 
 
@@ -88,7 +91,7 @@ n_trials = n_blocks*n_blocktrials
 
 #A. Some general stuff                                                          General stuff 
 #create window
-win = visual.Window(fullscr = True , units = "deg", monitor = "Laptop")
+win = visual.Window(fullscr = True, units = "deg", monitor = "Laptop")
 ResponseOptions = np.array(['f', 'j', 'esc', 'escape'])
 clock = core.Clock()
 clock_check = core.Clock()
@@ -204,7 +207,7 @@ def feedback_catch(correct_button = 0, response = None):
         
 
 
-#C. Create a function for the drifting gratings                                 Drifting gratings
+#C. Create a function for the gratings                                          Gratings
 #define some stuff
 d_grating = 4
 sf_grating = 1.4
@@ -283,33 +286,25 @@ def flash_draw():
     dot_template4.draw()
     
 # E. Create the Target                                                          Target
-def create_target_positions(size = n_blocktrials): 
-    r = 1.5
-    target_left_positions = np.empty([int(size/2), 2])
-    target_right_positions = np.empty([int(size/2), 2])
-    t = np.random.uniform(0, 1, size=size)
-    u = np.random.uniform(0, 1, size=size)
-    y = r*np.sqrt(t) * np.sin(2*np.pi*u)
-    x = r*np.sqrt(t) * np.cos(2*np.pi*u)
-    x = np.round(x, 1)
-    y = np.round(y, 1)
-    target_left_positions[:, 0] = x[0:int(size/2)] - 5
-    target_left_positions[:, 1] = y[0:int(size/2)]
-    target_right_positions[:, 0] = x[int(size/2):] + 5
-    target_right_positions[:, 1] = y[int(size/2):]
-    return target_left_positions, target_right_positions
+
+
+
 
 target_template =visual.GratingStim(win=win,tex='sin', mask='gauss',ori=0, sf=1.4, pos=(1,1), size= (1,1), interpolate=False)
 left_count = 0
 right_count = 0
-def target_prepare(target_loc = '0.0', amplitude = 15, left_i = left_count, right_i = right_count):         #target location: '0.0' = L, '1.0' = R
+def target_prepare(target_loc = '0.0', opacity = 1, contrast = 1, left_i = left_count, right_i = right_count, oriA = 0, oriB = 0):         #target location: '0.0' = L, '1.0' = R
                                                                                                         #corresponds with trial['Target_hemifield']
     if target_loc == '0.0': 
         target_position = t_left_pos[left_i, :]
+        target_ori = oriA + 90
     else: 
         target_position = t_right_pos[right_i, :]
+        target_ori = oriB + 90
     target_template.pos = target_position
-    target_template.maskParams={'sd':amplitude/2}
+    target_template.opacity = opacity
+    target_template.ori = target_ori
+    return target_ori
 
 
 extra_response_screen = visual.TextStim(win, text = 'Antwoord!')
@@ -358,8 +353,8 @@ thisExp = data.ExperimentHandler(dataFileName = file_name, extraInfo = info)
 
 
 #define the feedback & the instructions
-points_per_euro = 1000
-points_per_trial = 15
+points_per_euro = 600
+points_per_trial = 10
 
 
 #The instructions (in Dutch)
@@ -588,15 +583,25 @@ for block in range(n_blocks):
         win.recordFrameIntervals = True
         win.refreshThreshold = 1/framerate + 0.004
         
+        if trial['Target_position'] == '0.0': 
+            this_opacity = stair_opacityL
+        else: 
+            this_opacity = stair_opacityR
+        
         #prepare the values of the stimuli for this trial
         flash_prepare(position = trial["Flash_position"])
-        if trial['Target_position'] == 0: 
-            ampl = amplL
+
+#        ori_target = target_prepare(target_loc = trial['Target_position'], opacity = this_opacity, left_i = left_count, right_i = right_count, 
+#                                oriA = gr_orientation_start_array[this_blocktrial, 0], oriB = gr_orientation_start_array[this_blocktrial, 1])
+        ori_tartet = target_prepare(target_loc = trial['Target_position'], opacity = this_opacity, left_i = left_count, right_i = right_count, 
+                        oriA = 0, oriB = 0)
+        #grating_prepare(start_oriA = gr_orientation_start_array[this_blocktrial, 0], start_oriB = gr_orientation_start_array[this_blocktrial, 1])
+        grating_prepare(start_oriA = 0, start_oriB = 0)
+        
+        if trial['Target_position'] == '0.0': 
+            print('Diff L ', GratingA.ori - target_template.ori)
         else: 
-            ampl = amplR
-        target_prepare(target_loc = trial['Target_position'], amplitude = 30 - ampl, 
-                       left_i = left_count, right_i = right_count)
-        grating_prepare(start_oriA = gr_orientation_start_array[this_blocktrial, 0], start_oriB = gr_orientation_start_array[this_blocktrial, 1])
+            print('Diff R ', GratingB.ori - target_template.ori)
         
         #prepare the start- and end-points for this trial
         start_grating = Gr_start[this_blocktrial]
@@ -608,8 +613,24 @@ for block in range(n_blocks):
         fix_type_bin = int(block_fixation[this_blocktrial])
         fix_type = fixation_types[fix_type_bin]
         
+        
+        #add the catch-trials
+        if this_blocktrial in catch_trials: 
+            if speedy == 0: 
+                for Frame in range(1, 60): 
+                    fixation_draw(fix = fix_type)
+                    if Frame > 33: 
+                        grating_draw()
+                    win.flip()
+                catch_response = catch_trial()
+            else: 
+                catch_response = np.array(['f'])
+            catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
+                                          response = catch_response[0])
+            trials.addData('catch accuracy', catch_accuracy)
+        
+        
         clock_check.reset()
-
         for Frame in range(1, Max_Frames[this_blocktrial]):
             fixation_draw(fix = fix_type)
             if Frame >= start_grating: 
@@ -643,7 +664,7 @@ for block in range(n_blocks):
                     response = np.array(['f', 0])
                 if len(response) != 0:
                     break 
-        print('Overall, %i frames were dropped.' % win.nDroppedFrames)
+        #print('Overall, %i frames were dropped.' % win.nDroppedFrames)
         total_frames_dropped = win.nDroppedFrames
         win.recordFrameIntervals = False
         #allow for extra response time if no response is given yet
@@ -659,7 +680,7 @@ for block in range(n_blocks):
         else: 
             extra_time = False
         
-        print(response)
+        
         if response[0] == 'esc' or response[0] == 'escape': 
             break 
         elif (response[0] == 'f' and trial['CorResp'] == '0.0') or (response[0] == 'j' and trial['CorResp'] == '1.0'):
@@ -672,14 +693,6 @@ for block in range(n_blocks):
         if this_block_type == 'REWARD' and trial_accuracy == 1: 
             points_this_block = points_this_block + points_per_trial
             points_total = points_total + points_per_trial
-        
-        if this_blocktrial in catch_trials: 
-            catch_response = catch_trial()
-            catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
-                                      response = catch_response[0])
-            trials.addData('catch accuracy', catch_accuracy)
-        
-        
         
         #Add relevant data to the stored output_file
         
@@ -728,3 +741,9 @@ for block in range(n_blocks):
 message(message_text = 'Bedankt voor je deelname!')
     
 win.close()
+
+
+
+
+
+
