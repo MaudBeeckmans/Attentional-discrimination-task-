@@ -6,10 +6,9 @@ Created on Tue Nov 10 15:26:33 2020
 """
 
 """
-Remark on the staircase procedure
-* If you answer correctly, the startVal is scaled down
-  --> scaled up = more easy in  our case
-  --> should work with 30-ampl: then if correct answer, will be harder; wrong answer will be more easy 
+QUEST opacity
+* now working with adapted opacity every trial 
+* amplitude is just the standard; contrast is just 1 (standard); sf = 1.4
 Information
 * for less trials: change n_stair_trials 
    - = total amount of trials (for staircase 1 & 2 together)
@@ -24,11 +23,12 @@ Information
 import numpy as np
 import math, time, os, pandas
 from psychopy import visual, data, core, event, gui
+from Target_positions_function import create_target_positions
 
 #allows to play with the staircases: only the staircases are executed, rest is skipped
 speedy = 0
 
-n_stair_trials = 60
+n_stair_trials = 10
 
 #%%Create the relevant stimuli & functions
 #create the gui 
@@ -55,7 +55,10 @@ while already_exists == True:
         gui2.addText("Try another participant number")
         gui2.show()
 
-
+# create the experimentHandler after storing the name for the greeting 
+name = info['Naam']
+# pop the name and create the experimentHandler
+info.pop("Naam")
 
 #create window
 win = visual.Window(fullscr = True, units = "deg", monitor = "Laptop")
@@ -78,8 +81,8 @@ d1 = 0.6       #diameter outer circle (degrees)
 d2 = 0.2        #diameter inner circle (degrees)
 r1 = d1/2
 r2 = d2/2
-ppd = 25 #find formula to transpose pixels to visual degrees (here pixel per degree)
-
+#ppd = 25 #find formula to transpose pixels to visual degrees (here pixel per degree)
+ppd = 45 #when fullscreen on laptop use this 
 point_d = math.sqrt(r1**2/2)
 
 ##problem I think: lineWidth & lineWidth are in pixels
@@ -120,7 +123,7 @@ def fixation_draw(fix = 'plus'):             #draws the fixation, does not flip 
         line_d2.draw()
         dot_s.draw()
 
-n_catchtrials = int(n_stair_trials/10) #number of catch trials for EACH block 
+n_catchtrials = int(n_stair_trials/20) #number of catch trials for EACH block 
 def catch_trials_selection(): 
     catch_trials = np.random.randint(0, n_stair_trials, n_catchtrials)
     return catch_trials
@@ -166,7 +169,7 @@ def feedback_catch(correct_button = 0, response = None):
 
 
 
-#C. Create a function for the drifting gratings                                 Drifting gratings
+#C. Create a function for the gratings                                 Drifting gratings
 #define some stuff
 d_grating = 4
 sf_grating = 1.4
@@ -174,7 +177,7 @@ pos_grating = np.array([[-5, 0], [5,0]])
 GratingA = visual.GratingStim(win, tex = 'sin', mask = 'circle', sf = sf_grating, size = d_grating, ori = 0, pos = pos_grating[0])
 GratingB = visual.GratingStim(win, tex = 'sin', mask = 'circle', sf = sf_grating, size = d_grating, ori = 0, pos = pos_grating[1])
 
-#create a function for drifting Gratings
+
 #define the frameTimings            (see final test 2018-2019 for more on frames)
 framerate = 60
 
@@ -188,33 +191,21 @@ def grating_draw():
     GratingB.draw()
 
 # E. Create the Target                                                          Target
-def create_target_positions(size = None): 
-    r = 1.5
-    target_left_positions = np.empty([int(size/2), 2])
-    target_right_positions = np.empty([int(size/2), 2])
-    t = np.random.uniform(0, 1, size=size)
-    u = np.random.uniform(0, 1, size=size)
-    y = r*np.sqrt(t) * np.sin(2*np.pi*u)
-    x = r*np.sqrt(t) * np.cos(2*np.pi*u)
-    x = np.round(x, 1)
-    y = np.round(y, 1)
-    target_left_positions[:, 0] = x[0:int(size/2)] - 5
-    target_left_positions[:, 1] = y[0:int(size/2)]
-    target_right_positions[:, 0] = x[int(size/2):] + 5
-    target_right_positions[:, 1] = y[int(size/2):]
-    return target_left_positions, target_right_positions
 
-target_template =visual.GratingStim(win=win,tex='sin', mask='gauss',ori=0, sf=1.4, pos=(1,1), size= (1,1), interpolate=False)
+target_template =visual.GratingStim(win=win,tex='sin', mask='gauss',ori=90, sf=1.4, pos=(1,1), size= (1,1), interpolate=False)
 left_count = 0
 right_count = 0
-def target_prepare(target_loc = None, amplitude = 15, left_i = left_count, right_i = right_count):         #target location: '0.0' = L, '1.0' = R
+def target_prepare(target_loc = None, opacity = 1, left_i = left_count, right_i = right_count, oriA = 0, oriB = 0):         #target location: '0.0' = L, '1.0' = R
                                                                                                         #corresponds with trial['Target_hemifield']
     if target_loc == 0: 
         target_position = t_left_pos[left_i, :]
+        target_ori = oriA + 90
     else: 
         target_position = t_right_pos[right_i, :]
+        target_ori = oriA + 90
     target_template.pos = target_position
-    target_template.maskParams={'sd':amplitude/2}
+    target_template.opacity = opacity
+    target_template.ori = target_ori
 
 FB_template = visual.TextStim(win, text = '')
 FB_duration = 0.5
@@ -232,12 +223,35 @@ extra_response_screen = visual.TextStim(win, text = 'Antwoord!')
 
 
 
-#%%Staircase_instructions
 
+#%%Staircase_instructions & greeting
+
+#creating a template to put normal text on screen
+message_template = visual.TextStim(win, text = '')
+def message(message_text = '', duration = 0, response_keys = ['space'], color = 'white', height = 0.1, wrapWidth = 1.9, flip = True, position = (0,0)):
+    message_template.text = message_text
+    message_template.pos = position
+    message_template.units = "norm"
+    message_template.color = color
+    message_template.height = height 
+    message_template.wrapWidth = wrapWidth 
+    message_template.draw()
+    if flip == True: 
+        win.flip()
+        if speedy == 1: 
+            core.wait(0.01)
+        else: 
+            if duration == 0:
+                #when duration = 0, wait till participant presses the right key (keys allowed can be found in response_keys, default allowed key is 'space')
+                event.waitKeys(keyList = response_keys)
+            else: 
+                core.wait(duration)
+
+greeting = 'Hallo ' + name
 spatie = '\n\n(Druk op spatie om verder te gaan)'
-InstructionsP0 = str('Instructies: In deze taak zal je de locatie van een target (links of rechts) aangeven.'
-                     +'De target verschijnt steeds in 1 van 2 gepresenteerde gratings (links & rechts).'
-                     + 'De taak wordt in meer detail uitgelegd op volgende pagina\'s.' + spatie)
+InstructionsP0 = str('Instructies: In deze taak zal je de locatie van een target (links of rechts) aangeven. '
+                     +'De target verschijnt steeds in 1 van 2 gepresenteerde gratings (links & rechts). '
+                     + 'De taak wordt in meer detail uitgelegd op volgende pagina\'s. ' + spatie)
 InstructionsP1 = str('\nElke trial zal beginnen met een fixatiekruis. Hiernaast zullen 2  '
                      + 'gratings verschijnen. Probeer je aandacht naar deze 2 gratings te richten, maar kijk ' 
                      + 'vooral steeds naar het fixatiekruis. Probeer dus geen oogbewegingen te maken.'
@@ -335,17 +349,17 @@ Stair_array = np.column_stack([Gr_start_stair, Gr_T_interval_stair, T_start_stai
 
 
 #create experimenthandler
-thisExp = data.ExperimentHandler(dataFileName = datafile)
+thisExp = data.ExperimentHandler(dataFileName = datafile,  extraInfo = info)
 
 Stair_DF = pandas.DataFrame.from_records(Stair_array)     
-Stair_DF.columns = ['Grating onset', 'Grating - Target interval', 'Target onset', 'Grating orientation A', 
-                    'Grating orientation B', 'Target hemifield', 'Correct response']
+Stair_DF.columns = ['Grating_onset', 'Grating_Target_interval', 'Target_onset', 'Grating_orientation_A', 
+                    'Grating_orientation_B', 'Target_hemifield', 'Correct_response']
 Stair_TL = pandas.DataFrame.to_dict(Stair_DF, orient = "records")
 trials = data.TrialHandler(trialList = Stair_TL, nReps = 1, method = "random")
 
 #%%Create QuestHandler
-staircase1 = data.QuestHandler(startVal = 5, startValSd = 1, nTrials = n_stair_trials/2, pTreshold = 0.70)
-staircase2 = data.QuestHandler(startVal = 5, startValSd = 1, nTrials = n_stair_trials/2, pTreshold = 0.70)
+staircase1 = data.QuestHandler(startVal = 0.4, startValSd = 0.2, nTrials = n_stair_trials/2, pTreshold = 0.70)
+staircase2 = data.QuestHandler(startVal = 0.4, startValSd = 0.2, nTrials = n_stair_trials/2, pTreshold = 0.70)
 
 
 
@@ -357,21 +371,21 @@ fixation_set_position(x = 0, y = 0, fix_type = 'plus')
 
 thisExp.addLoop(trials)
 
+message(message_text = greeting, duration = 1)
 if speedy == 0: 
     for i in range(0, 6):
         instructions_stair(page = i)
 
 np.random.shuffle(block_fixation)
-print(block_fixation)
 catch_trials = catch_trials_selection()
-catch_trials = np.array([1, 2, 3, 4, 5])
+#catch_trials = np.array([1, 2, 3, 4, 5])   # is enkel om te testen 
 this_stair_trial = 0
 for trial in trials: 
-    grating_prepare(start_oriA = trial['Grating orientation A'], start_oriB = trial['Grating orientation B'])
-    
-    MaxFrames = trial['Target onset'] + Resp_time
-    Gr_showtime = trial['Grating onset']
-    T_showtime = trial['Target onset']
+    #grating_prepare(start_oriA = trial['Grating_orientation_A'], start_oriB = trial['Grating_orientation_B'])
+    grating_prepare(start_oriA = 0, start_oriB = 0)
+    MaxFrames = trial['Target_onset'] + Resp_time
+    Gr_showtime = trial['Grating_onset']
+    T_showtime = trial['Target_onset']
     T_disappeartime = T_showtime + T_dur
     
     
@@ -383,15 +397,34 @@ for trial in trials:
     fix_type = fixation_types[fix_type_bin]
     fixation_set_position(x = 0, y = 0, fix_type = fix_type)
     
-    if trial['Target hemifield'] == 0: 
-        ampl = staircase1._nextIntensity
-        trials.addData('Amplitude T Left', ampl)
+    if trial['Target_hemifield'] == 0: 
+        opa = staircase1._nextIntensity
+        trials.addData('Opacity_T_Left', opa)
     else: 
-        ampl = staircase2._nextIntensity
-        trials.addData('Amplitude T Right', ampl)
+        opa = staircase2._nextIntensity
+        trials.addData('Opacity_T_Right', opa)
     
-    #amplitude based on staircase
-    target_prepare(target_loc = trial['Target hemifield'], amplitude = 30 - ampl, left_i = left_count, right_i = right_count)
+    #opacity based on staircase
+#    target_prepare(target_loc = trial['Target_hemifield'], opacity = opa, left_i = left_count, right_i = right_count,
+#        oriA = trial['Grating_orientation_A'], oriB = trial['Grating_orientation_B'])
+    target_prepare(target_loc = trial['Target_hemifield'], opacity = opa, left_i = left_count, right_i = right_count, 
+        oriA = 0, oriB = 0)
+    #add the catch-trials
+    if this_stair_trial in catch_trials: 
+        if speedy == 0: 
+            for Frame in range(1, 60): 
+                fixation_draw(fix = fix_type)
+                if Frame > 33: 
+                    grating_draw()
+                win.flip()
+            catch_response = catch_trial()
+        else: 
+            catch_response = np.array(['f'])
+        catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
+                                      response = catch_response[0])
+        trials.addData('catch_accuracy', catch_accuracy)
+        
+    
     
     if speedy == 1: 
         response = np.array(['f'])
@@ -428,7 +461,7 @@ for trial in trials:
             extra_time = False
     
     #define the accuracy 
-    CorResp = trial['Correct response']
+    CorResp = trial['Correct_response']
     if response[0] == 'esc' or response[0] == 'escape': 
         break
     elif ResponseOptions[CorResp] == response[0]: 
@@ -440,13 +473,8 @@ for trial in trials:
     
     if speedy == 0: 
         feedback_trial(accuracy = trial_accuracy)
-        if this_stair_trial in catch_trials: 
-            catch_response = catch_trial()
-            catch_accuracy = feedback_catch(correct_button = ResponseOptions[int(fix_type_bin)], 
-                                      response = catch_response[0])
-            trials.addData('catch accuracy', catch_accuracy)
     #store the accuracy for the staircase
-    if trial['Target hemifield'] == 0: 
+    if trial['Target_hemifield'] == 0: 
         #hier de staircase aanpassen 
         left_count = left_count + 1
         staircase1.addResponse(stair_accuracy)
@@ -458,7 +486,20 @@ for trial in trials:
     trials.addData('Response', response[0])
     trials.addData('Accuracy', trial_accuracy)
     
+    if this_stair_trial == n_stair_trials - 1: 
+        trials.addData('QuantileL', np.round(staircase1.quantile(), 2))
+        trials.addData('QuantileR', np.round(staircase2.quantile(), 2))
+        trials.addData('MeanL', np.round(staircase1.mean(), 2))
+        trials.addData('MeanR', np.round(staircase2.mean(), 2))
+    
     thisExp.nextEntry()
     this_stair_trial += 1
 
 win.close()
+
+stored_opa = np.array([np.round(staircase1.quantile(), 2), np.round(staircase2.quantile(), 2)])
+opacity_file = 'Stair_opacity' + str(pp_number)
+np.save(opacity_file + '.npy', stored_opa)
+
+print(staircase1.mean(), staircase2.mean())
+print(staircase1.quantile(), staircase2.quantile())
