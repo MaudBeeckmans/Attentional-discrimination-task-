@@ -28,7 +28,7 @@ from Target_positions_function import create_target_positions
 #allows to play with the staircases: only the staircases are executed, rest is skipped
 speedy = 0
 
-n_stair_trials = 10
+n_stair_trials = 60
 
 #%%Create the relevant stimuli & functions
 #create the gui 
@@ -61,7 +61,7 @@ name = info['Naam']
 info.pop("Naam")
 
 #create window
-win = visual.Window(fullscr = True, units = "deg", monitor = "Laptop")
+win = visual.Window(fullscr = True, units = "deg", monitor = "Laptop", mouseVisible = False)
 
 ResponseOptions = np.array(['f', 'j', 'esc', 'escape'])
 clock = core.Clock()
@@ -209,7 +209,7 @@ def target_prepare(target_loc = None, opacity = 1, left_i = left_count, right_i 
 
 FB_template = visual.TextStim(win, text = '')
 FB_duration = 0.5
-FB_options = np.array(['Fout', 'Juist', 'Te traag'])
+FB_options = np.array(['Fout', 'Juist', 'Neutral', 'Te traag'])
 def feedback_trial(accuracy = 0, duration = FB_duration):        #accuracy should be matched based on acc. & block_type based on type
     FB_text = str(FB_options[accuracy])
     FB_template.text = FB_text
@@ -320,7 +320,7 @@ FrameT = 1000/60
 Gr_start_limits_ms = np.array([500, 600+FrameT])         #fixation will be between 500 & 600 ms
 Gr_start_limits = np.round(Gr_start_limits_ms/FrameT, 0)
 Gr_start_limits.astype(int)
-T_start_limits_ms = np.array([100, 2000+FrameT])
+T_start_limits_ms = np.array([500, 2000+FrameT])
 T_start_limits = np.round(T_start_limits_ms/FrameT, 0)
 T_start_limits.astype(int)
 T_dur_ms = 33
@@ -358,8 +358,8 @@ Stair_TL = pandas.DataFrame.to_dict(Stair_DF, orient = "records")
 trials = data.TrialHandler(trialList = Stair_TL, nReps = 1, method = "random")
 
 #%%Create QuestHandler
-staircase1 = data.QuestHandler(startVal = 0.4, startValSd = 0.2, nTrials = n_stair_trials/2, pTreshold = 0.70)
-staircase2 = data.QuestHandler(startVal = 0.4, startValSd = 0.2, nTrials = n_stair_trials/2, pTreshold = 0.70)
+staircase1 = data.QuestHandler(startVal = 0.25, startValSd = 0.10, nTrials = n_stair_trials/2, pTreshold = 0.65)
+staircase2 = data.QuestHandler(startVal = 0.25, startValSd = 0.10, nTrials = n_stair_trials/2, pTreshold = 0.65)
 
 
 
@@ -376,13 +376,72 @@ if speedy == 0:
     for i in range(0, 6):
         instructions_stair(page = i)
 
+grating_prepare(start_oriA = 0, start_oriB = 0)
+n_train_trials = 10
+train_appear = np.random.randint(30, 121, n_train_trials)
+train_target = np.random.randint(0, 2, n_train_trials)
+train_fix = np.random.randint(0, 2, n_train_trials)
+train_gratingT = 2
+left_count = 7
+right_count = 10
+message(message_text = 'Dit is een oefen-deel' + spatie)
+for i in range(n_train_trials): 
+    fix_type = fixation_types[train_fix[i]]
+    train_targetT = train_appear[i]
+    target_prepare(target_loc = train_target[i], opacity = 0.3, left_i = left_count, right_i = right_count, 
+            oriA = 0, oriB = 0)
+    for frame in range(train_appear[i] + Resp_time): 
+        fixation_draw(fix = fix_type)
+        if frame >= train_gratingT: 
+            grating_draw()
+        if frame >= train_targetT and frame < (train_targetT+2): 
+            target_template.draw()
+        win.flip()
+        if frame == train_targetT: 
+            event.clearEvents(eventType = 'keyboard')
+            clock.reset()
+        if frame >= train_targetT: 
+            response = event.getKeys(keyList = ResponseOptions, timeStamped = clock)
+            response = np.array(response).squeeze()
+            if len(response) != 0: 
+                break 
+            
+        #allow for extra response time if no response has been given yet 
+    if len(response) == 0: 
+        extra_response_screen.draw()
+        win.flip()
+        response = event.waitKeys(keyList = ResponseOptions, maxWait = Resp_extra_ms/1000, timeStamped = clock)
+        response = np.array(response).squeeze()
+        if np.all(response == None): 
+            response = np.array([-1])
+            trial_accuracy = -1 #for staircase make the accuracy 0 instead of -1 
+                #has to be -1 for the correct feedback
+        extra_time = True
+    else: 
+        extra_time = False
+    
+    #define the accuracy 
+    CorResp = train_target[i]
+    if ResponseOptions[CorResp] == response[0]: 
+        trial_accuracy = 1
+    elif response[0] == -1: 
+        pass
+    else: 
+        trial_accuracy = 0
+    feedback_trial(accuracy = trial_accuracy)
+    left_count += 1
+    right_count += 1
+        
+    
+message(message_text = 'Vanaf nu is het voor echt.' + spatie)
 np.random.shuffle(block_fixation)
 catch_trials = catch_trials_selection()
 #catch_trials = np.array([1, 2, 3, 4, 5])   # is enkel om te testen 
 this_stair_trial = 0
+left_count = 0
+right_count = 0
 for trial in trials: 
     #grating_prepare(start_oriA = trial['Grating_orientation_A'], start_oriB = trial['Grating_orientation_B'])
-    grating_prepare(start_oriA = 0, start_oriB = 0)
     MaxFrames = trial['Target_onset'] + Resp_time
     Gr_showtime = trial['Grating_onset']
     T_showtime = trial['Target_onset']
@@ -473,6 +532,7 @@ for trial in trials:
     
     if speedy == 0: 
         feedback_trial(accuracy = trial_accuracy)
+        #feedback_trial(accuracy = 2)
     #store the accuracy for the staircase
     if trial['Target_hemifield'] == 0: 
         #hier de staircase aanpassen 
@@ -503,3 +563,4 @@ np.save(opacity_file + '.npy', stored_opa)
 
 print(staircase1.mean(), staircase2.mean())
 print(staircase1.quantile(), staircase2.quantile())
+print(staircase1.median(), staircase2.median())
