@@ -17,17 +17,15 @@ import numpy as np
 
 #A. Some general stuff                                                          General stuff 
 #create window
-def create_general_stimuli(win_size = 'fullscr', Resp_options = np.array(['f', 'j', 'esc', 'escape'])): 
+def create_general_stimuli(win_size = 'fullscr', responseoptions = np.array(['f', 'j', 'esc', 'escape'])): 
     """Functions that creates the general stimuli at the beginning
-    - creates: window (win), 2 clocks to check timings (clock & clock_check), ResponseOptions"""
-    global clock, clock_check, ResponseOptions, win
+    - creates: window (win), ResponseOptions"""
+    global ResponseOptions, win
     if win_size == 'fullscr':     
         win = visual.Window(fullscr = True, units = "deg", monitor = "Laptop", mouseVisible = False)
     else: 
         win = visual.Window(size = win_size, units = "deg", monitor = "Laptop", mouseVisible = False)
-    ResponseOptions = Resp_options
-    clock = core.Clock()
-    clock_check = core.Clock()
+    ResponseOptions = responseoptions
 #%%
 def create_fixation_point(): 
     """Functions that creates the basic stimuli for the fixation_point
@@ -105,8 +103,8 @@ def catch_trials_prepare(n_catchtrials = None, n_blocktrials = None, n_blocks = 
     #allow to display FB on the catch trial 
     FB_catch_correct = visual.TextStim(win, text = 'Juist')
     FB_catch_wrong = visual.TextStim(win, text = 'Fout, probeer tijdens de trial te fixeren op het fixatiekruis')
-catch_trials_prepare(n_catchtrials = 4, n_blocktrials = 84, n_blocks = 6)
-#%%
+# catch_trials_prepare(n_catchtrials = 4, n_blocktrials = 84, n_blocks = 6)
+
 def catch_trial_execution(): 
     """Function that executes the catch_trial
     - Draw the catch_question & fixation_types at correct positions
@@ -138,7 +136,7 @@ def catch_trial_feedback(correct_button = 0, response = None):
     core.wait(duration)
     return accuracy
     
-
+#%%
 #C. Create a function for the gratings                                          Gratings
 def create_gratings(): 
     """Function that creates the 2 big gratings. 
@@ -151,7 +149,7 @@ def create_gratings():
     GratingA = visual.GratingStim(win, tex = 'sin', mask = 'circle', sf = sf_grating, size = d_grating, ori = 0, pos = pos_grating[0])
     GratingB = visual.GratingStim(win, tex = 'sin', mask = 'circle', sf = sf_grating, size = d_grating, ori = 0, pos = pos_grating[1])
 
-def grating_draw():
+def gratings_draw():
     """Fcuntion that draws the 2 gratings"""
     GratingA.draw()
     GratingB.draw()
@@ -221,6 +219,7 @@ def flash_draw():
 #%%
 # E. Create the Target  
 def create_target(): 
+    """Function that creates the target templates, left_count & right_count"""
     global target_template, left_count, right_count
     target_template =visual.GratingStim(win=win,tex='sin', mask='gauss',ori=90, sf=1.4, pos=(1,1), size= (1,1), 
                                         interpolate=False)
@@ -262,7 +261,7 @@ def create_target_positions(size = None, sf = 1.4):
     target_right_positions[:, 0] = x[int(size/2):] + 5
     target_right_positions[:, 1] = y[int(size/2):]
 
-def target_prepare(target_loc = 0, opacity = 1, left_i = left_count, right_i = right_count):
+def target_prepare(target_loc = 0, opacity = 1, left_i = 0, right_i = 0):
     """Function that prepares the target for each trial."""
     if target_loc == 0: 
         target_position = target_left_positions[left_i, :]
@@ -271,14 +270,85 @@ def target_prepare(target_loc = 0, opacity = 1, left_i = left_count, right_i = r
     target_template.pos = target_position
     target_template.opacity = opacity
 
-def create_extra_response_screen(): 
+#%%
+def create_extra_response_screen(time = 1000): 
     """Function that allows for extra response: 
         - created variables: extra_response_screen & extra_response_time (in ms)"""
     global extra_response_screen, extra_response_time
     extra_response_screen = visual.TextStim(win, text = 'Antwoord!')
-    extra_response_time = 1500
+    extra_response_time = time
 
+#%%
+def create_text_templates(euro_points = 600, trial_points = 10, FB_trial_dur = 0.5, FB_block_dur = 2): 
+    """Function that creates the variables necessary to define the functions: 'message', 'FB_trial' & 'FB_block'
+    - created variables: message_template, FB_template, FB_options, points_per_euro, points_per_trial, point_options, 
+                        FB_block_duration, FB_trial_duration, total_points (0)
+    - """
+    global message_template, FB_template, FB_options, points_per_euro, points_per_trial, point_options
+    global FB_block_duration, FB_trial_duration, total_points
+    message_template = visual.TextStim(win, text = '')
+    FB_template = visual.TextStim(win, text = '')
+    FB_trial_duration = FB_trial_dur
+    FB_options = np.array(['Fout', 'Juist', 'Te traag'])
+    points_per_euro = euro_points
+    points_per_trial = trial_points
+    total_points = 0
+    point_options = np.array(['+0', str('+' + str(points_per_trial)), '+0'])          #wrong, correct, no answer given 
+    FB_block_duration = FB_block_dur
+# create_text_templates()
 
+def message(message_text = '', duration = 0, response_keys = ['space'], color = 'white', height = 0.1, 
+            wrapWidth = 1.9, flip = True, position = (0,0), speedy = 0):
+    space = "(Druk op spatie om verder te gaan.)"
+    message_template.text = message_text + space
+    message_template.pos = position
+    message_template.units = "norm"
+    message_template.color = color
+    message_template.height = height 
+    message_template.wrapWidth = wrapWidth 
+    message_template.draw()
+    if flip == True: 
+        win.flip()
+        if speedy == 1: 
+            core.wait(0.01)
+        else: 
+            if duration == 0:
+                #when duration = 0, wait till participant presses the right key (keys allowed can be found in response_keys, default allowed key is 'space')
+                event.waitKeys(keyList = response_keys)
+            else: 
+                core.wait(duration)
 
+def feedback_trial_experiment(block_type = 'REWARD', accuracy = 0, duration = 0, speedy = 0):        #accuracy should be matched based on acc. & block_type based on type
+    if block_type == 'REWARD': 
+        FB_text = str(FB_options[accuracy] + " " + point_options[accuracy])
+    else: 
+        FB_text = str(FB_options[accuracy] + " " + point_options[0])
+    FB_template.text = FB_text
+    FB_template.draw()
+    win.flip()
+    if speedy == 1: 
+        core.wait(0.1)
+    else: 
+        core.wait(duration)
 
+def feedback_trial_staircase(accuracy = 0, duration = 0):#accuracy should be matched based on acc.
+    FB_text = str(FB_options[accuracy])
+    FB_template.text = FB_text
+    FB_template.draw()
+    win.flip()
+    core.wait(duration)
 
+def feedback_block(durationR = 0, block_type = 'REWARD', blockP = 0, totalP = 0, speedy = 0):
+    if block_type == 'REWARD': 
+        FB_block_text = "Einde van dit blok. \nPunten dit blok = {0} \n Punten totaal = {1} ".format(blockP, totalP)
+        duration = durationR
+    else: 
+        FB_block_text = "Einde van dit blok." 
+        duration = 1
+    FB_template.text = FB_block_text 
+    FB_template.draw()
+    win.flip()
+    if speedy == 1: 
+        core.wait(0.1)
+    else: 
+        core.wait(duration)
