@@ -18,7 +18,7 @@ my_home_directory, my_output_directory, pp_number, name, thisExp = create_output
 #%%Define the speedy & try_out
 speedy = 0
 try_out = 1
-fullscreen = True
+fullscreen = False
 
 #%%create the design
 n_blocks = 1
@@ -358,13 +358,69 @@ check_clock = core.Clock()
 
 #%%The train_trials
 n_traintrials = 6
-target_left_positions, target_right_positions = create_target_positions(size = n_traintrials, sf = 1.4)
+target_left_positions, target_right_positions = create_target_positions(size = n_traintrials*2, sf = 1.4)
+
+left_count, right_count = 0, 0
+
+Train_target_hemi = np.random.randint(0, 2, n_traintrials)
+Train_CorResp = np.copy(Train_target_hemi)
+Train_Grating_start = 33
+Train_target_start = np.random.randint(63, 121, n_traintrials)
+Fix_types_train = np.random.choice(Fixation_options, n_traintrials)
+Train_MaxFrames = Train_target_start + response_frames
 
 
+#%%
 message(message_text = greeting, duration = 1, speedy = speedy)
 if speedy == 0: 
     for i in range(0, 6):
         instructions_stair(page = i)
+    message(message_text = 'Dit is een oefen-deel' + spatie)
+    for traintrial in range(n_traintrials): 
+        response = None
+        
+        target_prepare(target_loc = Train_target_hemi[traintrial], opacity = 0.3, left_i = left_count, right_i = right_count)
+        Fix_type_train = Fix_types_train[traintrial]
+        MaxFrame_train = Train_MaxFrames[traintrial]
+        Target_start_train = Train_target_start[traintrial]
+        Target_stop_train = Target_start_train + target_frames
+        
+        for frame in range(MaxFrame_train): 
+            fixation_draw(fix_type = Fix_type_train)
+            if frame >= Train_Grating_start: 
+                gratings_draw()
+            if frame >= Target_start_train and frame < Target_stop_train: 
+                target_template.draw()
+            win.flip()
+            if frame == Target_start_train: 
+                event.clearEvents(eventType = 'keyboard')
+            if frame >= Target_start_train: 
+                response = event.getKeys(keyList = ResponseOptions, timeStamped = clock)
+                response = np.array(response).squeeze()
+                if len(response) != 0: 
+                    break 
+        if len(response) == 0: 
+            extra_response_screen.draw()
+            win.flip()
+            response = event.waitKeys(keyList = ResponseOptions, maxWait = extra_response_time/1000)
+            if np.all(response == None): 
+                response = np.array([-1, -1])
+                train_accuracy = -1
+        CorResp_train = ResponseOptions[Train_CorResp[traintrial]]
+        if np.all(response[0] == 'esc') or np.all(response[0] == 'escape'): 
+            break 
+        elif np.all(CorResp_train == response[0]): 
+            train_accuracy = 1
+        elif response[0] == -1: 
+            pass
+        else: 
+            train_accuracy = 0
+        feedback_trial_staircase(accuracy = train_accuracy, duration = FB_trial_duration)
+        if Train_target_hemi[traintrial] == 0: 
+            left_count += 1
+        else: 
+            right_count += 1
+        
 
 
 #%%Create QuestHandler
@@ -496,7 +552,4 @@ np.save(opacity_file + '.npy', stored_opa)
 print(staircase1.mean(), staircase2.mean())
 print(staircase1.quantile(0.3), staircase2.quantile(0.3))
 print(staircase1.mode(), staircase2.mode())
-
-
-
 
