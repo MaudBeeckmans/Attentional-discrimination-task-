@@ -17,8 +17,8 @@ my_home_directory, my_output_directory, pp_number, name, thisExp = create_output
                                                                                       file_name = 'Stairfile_pp')
 #%%Define the speedy & try_out
 speedy = 0
-try_out = 1
-fullscreen = False
+try_out = 0
+fullscreen = True
 
 #%%create the design
 n_blocks = 1
@@ -372,7 +372,7 @@ Train_MaxFrames = Train_target_start + response_frames
 
 #%%
 message(message_text = greeting, duration = 1, speedy = speedy)
-if speedy == 0: 
+if speedy == 0 and try_out == 0: 
     for i in range(0, 6):
         instructions_stair(page = i)
     message(message_text = 'Dit is een oefen-deel' + spatie)
