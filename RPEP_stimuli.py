@@ -159,9 +159,8 @@ def gratings_draw():
 def create_flashpos_arrays(): 
     """function that creates 2 arrays with the pos_values for 4 dots for both left & right flash: 
         - flash_left & flash_right: will be used in function flash_prepare()"""
-    global flash_left, flash_right
     flash_positions = np.array([0, 1])      #0 = left, 1 = right 
-    for i in range(flash_positions.shape[0]): 
+    for i in flash_positions: 
         if flash_positions[i] == 0: 
             x_left = pos_grating[0,0] - d_grating/2 - 1.5
             x_right = pos_grating[0,0] + d_grating/2 + 1.5
@@ -184,6 +183,7 @@ def create_flashpos_arrays():
             flash_left = np.array([dot_left, dot_right, dot_up, dot_down])
         else: 
             flash_right = np.array([dot_left, dot_right, dot_up, dot_down])
+    return flash_left, flash_right
     
 # flash_left, flash_right = create_flashpos_arrays()         #This is how to use the function "create_flashpos_arrays()"
 #                                                             #(not !! to use this function anymore after this line)
@@ -232,7 +232,6 @@ def create_target_positions(size = None, sf = 1.4):
         every trial
     Created variables: target_left_positions, target_right_positions
        - will be used in function target_prepare"""
-    global target_left_positions, target_right_positions
     r = 1.5
     target_left_positions = np.empty([int(size/2), 2])
     target_right_positions = np.empty([int(size/2), 2])
@@ -260,6 +259,7 @@ def create_target_positions(size = None, sf = 1.4):
     target_left_positions[:, 1] = y[0:int(size/2)]
     target_right_positions[:, 0] = x[int(size/2):] + 5
     target_right_positions[:, 1] = y[int(size/2):]
+    return target_left_positions, target_right_positions
 
 def target_prepare(target_loc = 0, opacity = 1, left_i = 0, right_i = 0):
     """Function that prepares the target for each trial."""
@@ -299,8 +299,7 @@ def create_text_templates(euro_points = 600, trial_points = 10, FB_trial_dur = 0
 
 def message(message_text = '', duration = 0, response_keys = ['space'], color = 'white', height = 0.1, 
             wrapWidth = 1.9, flip = True, position = (0,0), speedy = 0):
-    space = "(Druk op spatie om verder te gaan.)"
-    message_template.text = message_text + space
+    message_template.text = message_text
     message_template.pos = position
     message_template.units = "norm"
     message_template.color = color
@@ -352,3 +351,8 @@ def feedback_block(durationR = 0, block_type = 'REWARD', blockP = 0, totalP = 0,
         core.wait(0.1)
     else: 
         core.wait(duration)
+
+
+
+
+
