@@ -20,15 +20,14 @@ def create_output_file(map_name = None, file_name = None):
     my_output_directory = my_home_directory + '/' + map_name
     if not os.path.isdir(my_output_directory): 
         os.mkdir(my_output_directory)
-    os.chdir(my_output_directory)
     #define the filename for the output_file (based on pp_number)
     info = {'Naam' : '', 'Gender': ['Man', 'Vrouw', 'Derde gender'], 'Leeftijd': 0, 'Participant nummer': 0}
     already_exists = True
     while already_exists == True: 
         info_dialogue = gui.DlgFromDict(dictionary = info, title = 'Participant informatie')
         pp_number = info['Participant nummer']
-        output_file = file_name + str(pp_number)
-        if not os.path.isfile(output_file + '.csv'): 
+        output_file = "/" + file_name + str(pp_number)
+        if not os.path.isfile(my_output_directory + output_file + '.csv'): 
             already_exists = False
         else: 
             gui2 = gui.Dlg(title = 'Error')
@@ -36,8 +35,7 @@ def create_output_file(map_name = None, file_name = None):
             gui2.show()    
     name = info['Naam']
     info.pop('Naam')
-    thisExp = data.ExperimentHandler(dataFileName = output_file, extraInfo = info)
-    os.chdir(my_home_directory)
+    thisExp = data.ExperimentHandler(dataFileName = my_output_directory + output_file, extraInfo = info)
     return my_home_directory, my_output_directory, pp_number, name, thisExp
 
 # my_home_directory, my_output_directory, pp_number, name, thisExp = create_output_file(map_name = 'Test_folder', 
@@ -84,11 +82,13 @@ def create_design_fixed(n_blocks = 1):
 
 def create_design_complete(Basic_array = None, n_trials = 1, n_blocktrials = 1, 
                            n_blocks = 1): 
+    global Flash_duration, Target_duration
     """Function to complete the design_array (except for target_positions): 
         - Block_array, Basic_array, CorResp, Target_position, Grating_start_array, Grating_flash_array, 
             Flash_start_array, Target_start_array, MaxFrames_array)
         Input = Basic_array, n_trials, n_blocktrials, n_blocks
-        Returns: Design_array"""
+        Returns: Design_array
+        Also makes global: Flash_duration & Target_duration (= 2, is the amount of frames for them to be shown)"""
     CorResp = np.array([Basic_array[:, 1] != Basic_array[:, 2]]).reshape(n_trials, 1)*1
     Target_hemifield_array = np.copy(CorResp)
     #Count the blocks
@@ -113,13 +113,19 @@ def create_design_complete(Basic_array = None, n_trials = 1, n_blocktrials = 1,
     MaxFrames_array = Target_start_array + np.round(Response_time_ms/ framerate, 0)
     MaxFrames_array = MaxFrames_array.astype(int)
     
-    Design_array = np.column_stack([Trial_count, Block_count, Blocktrial_count, Basic_array, CorResp, Target_hemifield_array, Grating_start_array, 
-                                    Grating_flash_array, Flash_start_array, Target_start_array, MaxFrames_array])
+    Fixation_types = np.array(['plus', 'cross'])
+    Fixation_type_array = np.concatenate([np.zeros(int(n_trials/2)), np.ones(int(n_trials/2))]).reshape(n_trials, 1)
+    np.random.shuffle(Fixation_type_array)
+                #0 = plus, 1 = cross
     
-    return Design_array
+    Design_array = np.column_stack([Trial_count, Block_count, Blocktrial_count, Basic_array, CorResp, 
+                                    Target_hemifield_array, Grating_start_array, Grating_flash_array, 
+                                    Flash_start_array, Target_start_array, MaxFrames_array, Fixation_type_array])
+    Design_array = Design_array.astype(int)
+    return Design_array, Fixation_types
 
-# Design_array = create_design_complete(n_blocks = 6, Basic_array = Fixed_blocks, 
-#                                                                n_blocktrials = n_blocktrials, n_trials = n_trials)
+# Design_array, Fixation_options = create_design_complete(n_blocks = 6, Basic_array = Fixed_blocks, 
+#                                                                 n_blocktrials = n_blocktrials, n_trials = n_trials)
 #%%The functions that can be used, importing then from this file
 def create_pandas_design(array = None, number = 1, used_map = None): 
     """Function to create a pandas dataframe based on an array & stores this DF in a file
@@ -127,21 +133,22 @@ def create_pandas_design(array = None, number = 1, used_map = None):
         the output map
     Returns: Design_DF (the dataframe)"""
     Design_DF = pandas.DataFrame.from_records(array)
-    Design_DF.columns = ['TrialN', 'BlockN', 'BlocktrialN', 'FTI', 'Flash_position', 'Target_relative_position', 'CorResp', 
-                         'Target_hemifield', 'Grating_start', 'Grating_Flash', 'Flash_start', 'Target_start', 'MaxFrames']
+    Design_DF.columns = ['TrialN', 'BlockN', 'BlocktrialN', 'FTI', 'Flash_position', 'Target_relative_position', 
+                         'CorResp', 'Target_hemifield', 'Grating_start', 'Grating_Flash', 'Flash_start', 
+                         'Target_start', 'MaxFrames', 'Fixation_type_bin']
     datafile_design = used_map + '\Full_design' + str(number) + '.csv'
     Design_DF.to_csv(datafile_design, index = False)
     return Design_DF
 # Design_DF = create_pandas_design(array = Design_array)
 
-
-#%%The functions that can be used, importing then from this file
+#%%
 
 def create_target_positions(size = None, sf = 1.4): 
     """Function that creates the correct positions for target that appear on the left & right side of the screen 
     Input: size = the total amount of trials, sf = spatial frequency of the gratings, for same target visibility 
         every trial
-    Returns: target_left_positions, target_right_positions"""
+    Created variables: target_left_positions, target_right_positions
+       - will be used in function target_prepare"""
     r = 1.5
     target_left_positions = np.empty([int(size/2), 2])
     target_right_positions = np.empty([int(size/2), 2])
@@ -169,5 +176,8 @@ def create_target_positions(size = None, sf = 1.4):
     target_left_positions[:, 1] = y[0:int(size/2)]
     target_right_positions[:, 0] = x[int(size/2):] + 5
     target_right_positions[:, 1] = y[int(size/2):]
-    
     return target_left_positions, target_right_positions
+
+
+
+
