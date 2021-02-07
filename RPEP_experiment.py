@@ -18,8 +18,9 @@ my_home_directory, my_output_directory, pp_number, name, thisExp = create_output
                                                                                       file_name = 'Outputfile_pp')
 #%%Define the speedy & try_out
 speedy = 0
-try_out = 0
-fullscreen = False
+try_out = 1
+fullscreen = True
+try_out_opa = 0.3758
 
 #%%create the design
 n_blocks = 6
@@ -83,11 +84,10 @@ for i in range(n_blocks):
         catch_trials = catch_trials_block
     else: 
         catch_trials = np.row_stack([catch_trials, catch_trials_block])
-catch_question = visual.TextStim(win, text = str('Welk fixatiekruis heb je voor het laatst gezien: Het linker'
-                                             + ' of het rechter? \n Druk \'f\' als je links denkt,'
-                                             +'\'j\' als je rechts denkt'), pos = (0, 0.5), 
-                                 wrapWidth = 1.9, units = 'norm')
-catch_fix_positions = np.array([-4, 4])
+catch_question = visual.TextStim(win, text = str('Is dit fixatiekruis is HETZELFDE als hetgeen je net hebt gezien.'
+                            +'\n Druk \'f\' voor ja, \'j\' voor nee.'), pos = (0, 0.5), 
+                            wrapWidth = 1.9, units = 'norm')
+
 #allow to display FB on the catch trial 
 FB_catch_correct = visual.TextStim(win, text = 'Juist')
 FB_catch_wrong = visual.TextStim(win, text = 'Fout, probeer tijdens de trial te fixeren op het fixatiekruis')
@@ -204,17 +204,14 @@ def catch_trial_execution():
     - Store response of the pp (returns: catch_response)
     - Set fixation_positions back to 0, 0 after completion"""
     catch_question.draw()
-    #draw the left fixation: plus
-    for i, pos in enumerate(catch_fix_positions): 
-        fixation_set_position(x = pos, y = 0, fix_type = Fixation_types[i])
-        fixation_draw(fix_type = Fixation_types[i])
+    #randomly select whether the cross or the plus is drawn 
+    catch_cross = np.random.randint(0, 2, 1)
+    fixation_draw(fix_type = Fixation_types[catch_cross])
     win.flip()
     catch_response = event.waitKeys(keyList = ResponseOptions)
-    for i in range(2): 
-        fixation_set_position(x = 0, y = 0, fix_type = Fixation_types[i])
-    return catch_response
+    return catch_response, catch_cross
 
-def catch_trial_feedback(correct_button = 0, response = None, speedy = 0): 
+def catch_trial_feedback(correct_button = None, response = None, speedy = 0): 
     """Function that draws feedback on the catch_trials, based on the catch_response from function 'catch_execution'.
     - Returns: accuracy (catch_accuracy)"""
     if response == correct_button: 
@@ -406,11 +403,12 @@ block_type_array = np.tile(block_sequence[pp_number%2], int(n_blocks/2))
 #load the correct stair_opacity from the corresponding file for this pp in the staircase_output
 if try_out == 0: 
     load_directory = 'C:\\Users\\Maud\\Documents\\Psychologie\\1ste_master_psychologie\\RPEP\\Experiment\\Eindproduct\\Output_stairCase'
-    stair_opacityL, stair_opacityR = np.load(load_directory + '\Stair_opacity' + str(pp_number) + '.npy')
+    stair_opacityL = np.load(load_directory + '\Stair_opacity' + str(pp_number) + '.npy')
+    stair_opacityR = stair_opacityL
 #    stair_opacityL -= 0.05
 #    stair_opacityR -= 0.05
 else: 
-    stair_opacityL, stair_opacityR = 0.23, 0.2
+    stair_opacityL, stair_opacityR = try_out_opa, try_out_opa
 
 
 #%%
@@ -445,19 +443,26 @@ for trial in trials:
         this_block_type = block_type_array[trial['BlockN']]
         message(message_text = str("Dit is blok {0}. Dit is een {1} blok.".format(trial['BlockN'] + 1, this_block_type) 
                                    + "\n Druk \'spatie\' om te starten."), speedy = speedy)
-    
-    if trial['BlocktrialN'] in catch_trials[trial['BlockN']]: 
+#2 lines below to test the catch_trials
+#    catch_trials = np.random.randint(0, 10, 5)
+#    if trial['BlocktrialN'] in catch_trials:
+    if trial['BlocktrialN'] in catch_trials[trial['BlockN']]:
         if speedy == 0: 
             for Frame in range(60):     
                 fixation_draw(fix_type = fix_type_trial)
                 if Frame > 33: 
                     gratings_draw()
                 win.flip()
-            catch_response = catch_trial_execution()
+            catch_response, catch_cross = catch_trial_execution()
         else: 
             catch_response = np.array(['f'])
-        catch_accuracy = catch_trial_feedback(correct_button = ResponseOptions[trial['Fixation_type_bin']], 
-                                              response = catch_response[0], speedy = speedy)
+            catch_cross = 1 #added
+        CorResp_catch = (trial['Fixation_type_bin'] != catch_cross)*1      #if fix_type_trial == fix_type_catch, correct answer is 'f' (0)
+        #print('0 / 1 for catch trial is {}'.format(CorResp_catch))
+        catch_accuracy = catch_trial_feedback(correct_button = ResponseOptions[int(CorResp_catch)], 
+                                          response = catch_response[0], speedy = speedy)
+        print('Catch accuracy is {}'.format(catch_accuracy))
+        trials.addData('Catch_accuracy', catch_accuracy)
     
     #make sure the frame loop duration is as short as possible
     max_frames = trial['MaxFrames']
@@ -553,7 +558,7 @@ for trial in trials:
     else: 
         right_count = right_count + 1
     
-    if response[0] == 'esc' or response[0] == 'escape': 
+    if np.all(response[0] == 'esc') or np.all(response[0] == 'escape'): 
         break
     
     if trial['BlocktrialN'] == n_blocktrials-1: 
@@ -563,6 +568,3 @@ for trial in trials:
 
 message(message_text = 'Bedankt voor je deelname!')
 win.close()
-
-
-
