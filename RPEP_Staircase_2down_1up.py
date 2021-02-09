@@ -457,6 +457,7 @@ for increment in staircase:
         catch_accuracy = catch_trial_feedback(correct_button = ResponseOptions[int(CorResp_catch)], 
                                           response = catch_response[0], speedy = speedy)
         print('Catch accuracy is {}'.format(catch_accuracy))
+        thisExp.addData('Catch_accuracy', catch_accuracy)
 
     for frame in range(max_frames): 
         fixation_draw(fix_type = fix_type_trial)
@@ -515,6 +516,11 @@ for increment in staircase:
         else: 
             feedback_trial_staircase(accuracy = 2, duration = FB_trial_duration)
     this_trial += 1
+    thisExp.addData('Target_hemifield', Target_pos[this_trial])
+    thisExp.addData('Opacity', this_opacity)
+    thisExp.addData('Accuracy', stair_accuracy)
+    thisExp.nextEntry()
+    
     
 
     
@@ -545,5 +551,5 @@ print(store_opa)
 print(store_acc)
 
 stored_opa = np.array([thresh])
-opacity_file = 'Stair_opacity' + str(pp_number)
-np.save(opacity_file + '.npy', stored_opa)
+opacity_file = '\Stair_opacity' + str(pp_number)
+np.save(my_output_directory + opacity_file + '.npy', stored_opa)
