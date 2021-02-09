@@ -20,7 +20,7 @@ my_home_directory, my_output_directory, pp_number, name, thisExp = create_output
 speedy = 0
 try_out = 1
 fullscreen = True
-try_out_opa = 0.3758
+try_out_opa = 0.8
 
 #%%create the design
 n_blocks = 6
@@ -402,13 +402,12 @@ block_type_array = np.tile(block_sequence[pp_number%2], int(n_blocks/2))
 
 #load the correct stair_opacity from the corresponding file for this pp in the staircase_output
 if try_out == 0: 
-    load_directory = 'C:\\Users\\Maud\\Documents\\Psychologie\\1ste_master_psychologie\\RPEP\\Experiment\\Eindproduct\\Output_stairCase'
-    stair_opacityL = np.load(load_directory + '\Stair_opacity' + str(pp_number) + '.npy')
-    stair_opacityR = stair_opacityL
-#    stair_opacityL -= 0.05
-#    stair_opacityR -= 0.05
+    load_directory = my_home_directory + '\\Output_stairCase'
+    stair_opacity_array = np.load(load_directory + '\Stair_opacity' + str(pp_number) + '.npy')
+    stair_opacity = np.round(float(stair_opacity_array), 4)
+    print('Opa is {}'.format(stair_opacity))
 else: 
-    stair_opacityL, stair_opacityR = try_out_opa, try_out_opa
+    stair_opacity= try_out_opa
 
 
 #%%
@@ -425,11 +424,8 @@ if speedy == 0:
 for trial in trials: 
     response = None
     response_RT = None
-    #define the correct opacity based on target in L or R hemifield
-    if trial['Target_hemifield'] == 0: 
-        this_opacity = stair_opacityL
-    else: 
-        this_opacity = stair_opacityR
+    this_opacity = stair_opacity
+    #print('this_opa is {}'.format(this_opacity)) 
     trials.addData('Target_opacity', this_opacity)
     #Prepare the flash & target positioning & opacity of target
     flash_prepare(position = trial['Flash_position'])
@@ -461,7 +457,7 @@ for trial in trials:
         #print('0 / 1 for catch trial is {}'.format(CorResp_catch))
         catch_accuracy = catch_trial_feedback(correct_button = ResponseOptions[int(CorResp_catch)], 
                                           response = catch_response[0], speedy = speedy)
-        print('Catch accuracy is {}'.format(catch_accuracy))
+        #print('Catch accuracy is {}'.format(catch_accuracy))
         trials.addData('Catch_accuracy', catch_accuracy)
     
     #make sure the frame loop duration is as short as possible
@@ -536,6 +532,7 @@ for trial in trials:
     if this_block_type == 'REWARD' and trial_accuracy == 1: 
         points_this_block = points_this_block + points_per_trial
         total_points = total_points + points_per_trial
+        
     
     
     trials.addData('Response', response[0])
@@ -550,6 +547,7 @@ for trial in trials:
     trials.addData('T_appear_T', T_appearT)
     trials.addData('T_stop_T', T_stopT)
     trials.addData('Total_Dropped_Frames', total_frames_dropped)
+    trials.addData('Block_type', this_block_type)
     #allow to store the next entry 
     thisExp.nextEntry()
     
