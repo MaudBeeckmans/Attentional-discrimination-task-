@@ -18,7 +18,7 @@ my_home_directory, my_output_directory, pp_number, name, thisExp = create_output
                                                                                       file_name = 'Outputfile_pp')
 #%%Define the speedy & try_out
 speedy = 0
-try_out = 1
+try_out = 0
 fullscreen = True
 try_out_opa = 0.8
 
@@ -422,7 +422,8 @@ if speedy == 0:
     for i in range(0, 8): 
         instructions(page = i)
 for trial in trials: 
-    response = None
+    check_duration = 0
+    response = []
     response_RT = None
     this_opacity = stair_opacity
     #print('this_opa is {}'.format(this_opacity)) 
@@ -468,12 +469,16 @@ for trial in trials:
     start_target = trial['Target_start'] 
     stop_target = trial['Target_start'] + target_frames
     
+    if start_target >= start_flash: 
+        FTI_positive = True
+    else: 
+        FTI_positive = False
     
     #start the display of the frames for this trial
     win.recordFrameIntervals = True
-    win.refreshThreshold = 1/framerate + 0.004
+    win.refreshThreshold = 1/framerate + 0.001
     clock_check.reset()
-    for frame in range(max_frames): 
+    for frame in range(1, max_frames): 
         fixation_draw(fix_type = fix_type_trial)
         if frame >= start_grating: 
             gratings_draw()
@@ -486,27 +491,27 @@ for trial in trials:
             clock.reset()
             event.clearEvents(eventType = 'keyboard')
         
-        if frame == start_grating: 
-            Gr_appearT = clock_check.getTime()
-        elif frame == start_flash: 
-            Fl_appearT = clock_check.getTime()
-        elif frame == stop_flash: 
-            Fl_stopT = clock_check.getTime()
         
-        if frame == start_target: 
-            T_appearT = clock_check.getTime()
-        elif frame == stop_target: 
-            T_stopT = clock_check.getTime()
-        
-        if frame >= start_target: 
+        if frame > stop_target: 
+            if FTI_positive == True: 
+                break 
             response = event.getKeys(keyList = ResponseOptions, timeStamped = clock)
             response = np.array(response).squeeze()
             if speedy == 1 and frame >= stop_flash and frame >= stop_target: 
                 response = np.array(['f', 0])
             if len(response) != 0:
                 break 
+    loop_time = clock_check.getTime()
     total_frames_dropped = win.nDroppedFrames
     win.recordFrameIntervals = False
+    if FTI_positive == True: 
+        if speedy == 0: 
+            response = event.waitKeys(keyList = ResponseOptions, timeStamped = clock, maxWait = 1)      #if no response given, this leads to response = None)
+            response = np.array(response).squeeze()
+            if np.all(response == None): 
+                response = []
+        else: 
+            response = np.array(['f', 0])
     if len(response) == 0:
         extra_response_screen.draw()
         win.flip()
@@ -541,13 +546,9 @@ for trial in trials:
     trials.addData('Extra_time_needed', extra_time)
     trials.addData('Total_points', total_points)
     trials.addData('Block_points', points_this_block)
-    trials.addData('Gr_appear_T', Gr_appearT)
-    trials.addData('Fl_appear_T', Fl_appearT)
-    trials.addData('Fl_stop_T', Fl_stopT)
-    trials.addData('T_appear_T', T_appearT)
-    trials.addData('T_stop_T', T_stopT)
     trials.addData('Total_Dropped_Frames', total_frames_dropped)
     trials.addData('Block_type', this_block_type)
+    trials.addData('Loop_time', loop_time)
     #allow to store the next entry 
     thisExp.nextEntry()
     
