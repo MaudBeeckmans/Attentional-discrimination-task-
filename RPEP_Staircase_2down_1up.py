@@ -11,12 +11,6 @@ Created on Wed Feb  3 18:17:21 2021
     To do: 
         - nog eens checken of de staircase in orde is en goede resultaten geeft met experiment: timen ook!!
         - checken of het allemaal goed werkt met de documenten 
-        - de OEFENTRIALS toevoegen en optimaliseren: zouden eigenlijk buiten de loop van de staircase moeten! 
-        - kan eventueel wel met een kopie van de loop, niet zo efficient, maar wel makkelijk
-        - stair_opacity file moet ergens in een mapje opgeslagen worden & ook terug opgehaald kunnen worden! 
-          --> mapje moet ook vanop andere pc bereikbaar zijn (dus NIET C://MAUD/...)
-Tries: staircase + experiment (complete)
-    - 35:52 min (Maud)
 """
 
 from psychopy import visual, data, event, core, gui
@@ -418,6 +412,7 @@ for trial in range(n_train_trials):
         else: 
             feedback_trial_staircase(accuracy = 2, duration = FB_trial_duration)
     this_trial += 1
+    
 
  
 
@@ -520,6 +515,10 @@ for increment in staircase:
     thisExp.addData('Opacity', this_opacity)
     thisExp.addData('Accuracy', stair_accuracy)
     thisExp.nextEntry()
+    print(this_trial)
+    if this_trial == (n_stair_trials-1): 
+        print('end reached')
+        break 
     
     
 
@@ -527,6 +526,13 @@ for increment in staircase:
     
 print('test done')
 win.close()
+
+
+print('Opacity array: {}'.format(store_opa))
+print('Accuracy array: {}'.format(store_acc))
+print('Reversal array: {}'.format(staircase.reversalIntensities))
+print('Mean value of all reversals is {}'.format(np.mean(staircase.reversalIntensities)))
+
 
 #%% the analysis part
 # set to 0.5 for Yes/No (or PSE). Set to 0.8 for a 2AFC threshold
@@ -546,9 +552,8 @@ fit = data.FitWeibull(combinedInten, combinedResp, expectedMin=expectedMin,
 smoothInt = pylab.arange(min(combinedInten), max(combinedInten), 0.001)
 smoothResp = fit.eval(smoothInt)
 thresh = fit.inverse(threshVal)
-print(thresh)
-print(store_opa)
-print(store_acc)
+print('Treshold is: {}'.format(thresh))
+
 
 stored_opa = np.array([thresh])
 opacity_file = '\Stair_opacity' + str(pp_number)
