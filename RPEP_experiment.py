@@ -475,6 +475,7 @@ for trial in trials:
         FTI_positive = False
     
     #start the display of the frames for this trial
+    check_dur = 0
     win.recordFrameIntervals = True
     win.refreshThreshold = 1/framerate + 0.001
     clock_check.reset()
@@ -491,8 +492,21 @@ for trial in trials:
             clock.reset()
             event.clearEvents(eventType = 'keyboard')
         
+        check_start = clock_check.getTime()
+        if frame == start_grating: 
+            Gr_appearT = clock_check.getTime()
+        elif frame == start_flash: 
+            Fl_appearT = clock_check.getTime()
+        elif frame == stop_flash: 
+            Fl_stopT = clock_check.getTime()
         
-        if frame > stop_target: 
+        if frame == start_target: 
+            T_appearT = clock_check.getTime()
+        elif frame == stop_target: 
+            T_stopT = clock_check.getTime()
+        check_end = clock_check.getTime()
+        check_dur += (check_end-check_start)
+        if frame >= stop_target: 
             if FTI_positive == True: 
                 break 
             response = event.getKeys(keyList = ResponseOptions, timeStamped = clock)
@@ -549,6 +563,12 @@ for trial in trials:
     trials.addData('Total_Dropped_Frames', total_frames_dropped)
     trials.addData('Block_type', this_block_type)
     trials.addData('Loop_time', loop_time)
+    trials.addData('Gr_appear_T', Gr_appearT)
+    trials.addData('Fl_appear_T', Fl_appearT)
+    trials.addData('Fl_stop_T', Fl_stopT)
+    trials.addData('T_appear_T', T_appearT)
+    trials.addData('T_stop_T', T_stopT)
+    trials.addData('Check_loop_time', check_dur)
     #allow to store the next entry 
     thisExp.nextEntry()
     
