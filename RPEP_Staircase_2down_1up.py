@@ -8,9 +8,6 @@ Created on Wed Feb  3 18:17:21 2021
 """info about this staircase: 2 down 1 up 
     - will use random intervals between grating appearance & target appearance 
     - will NOT use a flash 
-    To do: 
-        - nog eens checken of de staircase in orde is en goede resultaten geeft met experiment: timen ook!!
-        - checken of het allemaal goed werkt met de documenten 
 """
 
 from psychopy import visual, data, event, core, gui
@@ -20,21 +17,27 @@ from RPEP_functions import create_target_positions, create_output_file
 
 #Create the correct map & ExperimentHandler: with info, output_file
 my_home_directory, my_output_directory, pp_number, name, thisExp = create_output_file(map_name = 'Output_staircase', 
-                                                                                      file_name = 'Stairfile_pp')
+                                                                                      file_name = 'Stairfile_pp', exp_type = 'staircase')
 #to easily adapt
 n_stair_trials = 60
 
 
 #%%Define the speedy & try_out
 speedy = 0
-try_out = 1         #change to set the train_trials at 0
+try_out = 0         #change to set the train_trials at 0
 fullscreen = True
+used_monitor = 'ExpMonitor'
+#used_monitor = 'Laptop'
+
+#calculate on site: https://www.sr-research.com/visual-angle-calculator/
+#ppd = 50 #find formula to transpose pixels to visual degrees (here pixel per degree)
+ppd = 30
 
 #create the design
 if try_out == 1: 
     n_train_trials = 0
 else: 
-    n_train_trials = 4
+    n_train_trials = 6
 max_trials = n_stair_trials + n_train_trials
 framerate = 1000/60         #time for 1 frame in ms (16,6666668)
 Response_time_ms = 1000
@@ -63,9 +66,9 @@ Design_array = np.column_stack([Target_pos, Cor_resp, Grating_start_array, Targe
 #%%create stiimuli & variables that should be created before the loops
 #Create window & ResponseOptions
 if fullscreen == True: 
-    win = visual.Window(fullscr = True, units = 'deg', monitor = 'Laptop', mouseVisible = False)
+    win = visual.Window(fullscr = True, units = 'deg', monitor = used_monitor, mouseVisible = False)
 else: 
-    win = visual.Window(size = [800, 600], units = "deg", monitor = "Laptop", mouseVisible = False)
+    win = visual.Window(size = [800, 600], units = "deg", monitor = used_monitor, mouseVisible = False)
 ResponseOptions = np.array(['f', 'j', 'esc', 'escape'])
 
 #Create the fixation point 
@@ -73,9 +76,7 @@ d1 = 0.6       #diameter outer circle (degrees)
 d2 = 0.2        #diameter inner circle (degrees)
 r1 = d1/2
 r2 = d2/2
-#calculate on site: https://www.sr-research.com/visual-angle-calculator/
-ppd = 45 #find formula to transpose pixels to visual degrees (here pixel per degree)
-ppd = 30
+
 point_d = math.sqrt(r1**2/2)
 dot_b = visual.Circle(win, color = 'black', radius = r1, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
 dot_s = visual.Circle(win, color = 'black', radius = r2, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
@@ -167,7 +168,7 @@ InstructionsP5 = str('Moest je nog vragen hebben, kom dan gerust eens kloppen bi
                      + 'hoofdsteun te leggen en vergeet niet steeds naar het fixatiekruis te kijken. Succes.' 
                      + spatie)
 
-instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5), alignText = 'left')
+instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5))
 instructions_image = visual.ImageStim(win, image = None, pos = (0, -0.5), units = 'norm', size = (1.9, 1))
 path = my_home_directory
 
@@ -334,22 +335,15 @@ if speedy == 0 and try_out == 0:
         instructions_stair(page = i)
 
 staircase = data.StairHandler(startVal=start_opa, stepType='lin',
-    stepSizes=[0.01],  # reduce step size every two reversals
+    stepSizes=[0.02, 0.02, 0.01],  # reduce step size every two reversals
     minVal=0, maxVal=0.7,
     nUp=1, nDown=2,  # will home in on the 70% threshold
     nTrials=n_stair_trials)
 
+message(message_text = 'Dit is een oefen-deel' + spatie)
 this_trial = 0
 for trial in range(n_train_trials): 
-    if this_trial == 0: 
-        message(message_text = 'Dit is een oefen-deel' + spatie)
-    elif this_trial == n_train_trials: 
-        message(message_text = 'Vanaf nu is het voor echt.' + spatie)
-    #define opacity of the trial 
-    if this_trial < n_train_trials:
-        this_opacity = train_opa
-    elif this_trial == n_train_trials: 
-        this_opacity = start_opa
+    this_opacity = train_opa
     #print(this_opacity)
     target_prepare(target_loc = Target_pos[this_trial], opacity = this_opacity, left_i = left_count, right_i = right_count)
     fix_type_trial = Fixation_types[int(Fixation_type_array[this_trial])]
@@ -413,18 +407,12 @@ for trial in range(n_train_trials):
             feedback_trial_staircase(accuracy = 2, duration = FB_trial_duration)
     this_trial += 1
     
-
- 
+message(message_text = 'Einde van de oefentrials, gelieve even de experimentleider te gaan halen.' + spatie)
+message(message_text = 'Vanaf nu is het voor echt.' + spatie)
 
 for increment in staircase: 
-    if this_trial == 0: 
-        message(message_text = 'Dit is een oefen-deel' + spatie)
-    elif this_trial == n_train_trials: 
-        message(message_text = 'Vanaf nu is het voor echt.' + spatie)
     #define opacity of the trial 
-    if this_trial < n_train_trials:
-        this_opacity = train_opa
-    elif this_trial == n_train_trials: 
+    if this_trial == n_train_trials: 
         this_opacity = start_opa
     else:
         this_opacity = increment
@@ -515,24 +503,21 @@ for increment in staircase:
     thisExp.addData('Opacity', this_opacity)
     thisExp.addData('Accuracy', stair_accuracy)
     thisExp.nextEntry()
-    print(this_trial)
     if this_trial == (n_stair_trials-1): 
         print('end reached')
         break 
     
     
-
+message(message_text = 'Dit is het einde van het eerste deel, gelieve de experimentleider te gaan halen.')
     
     
 print('test done')
 win.close()
 
-
 print('Opacity array: {}'.format(store_opa))
 print('Accuracy array: {}'.format(store_acc))
 print('Reversal array: {}'.format(staircase.reversalIntensities))
 print('Mean value of all reversals is {}'.format(np.mean(staircase.reversalIntensities)))
-
 
 #%% the analysis part
 # set to 0.5 for Yes/No (or PSE). Set to 0.8 for a 2AFC threshold
@@ -553,7 +538,6 @@ smoothInt = pylab.arange(min(combinedInten), max(combinedInten), 0.001)
 smoothResp = fit.eval(smoothInt)
 thresh = fit.inverse(threshVal)
 print('Treshold is: {}'.format(thresh))
-
 
 stored_opa = np.array([thresh])
 opacity_file = '\Stair_opacity' + str(pp_number)
