@@ -32,3 +32,9 @@ How to run the experiment
      --> the correct value for the opacity (to achieve 70% correct) will be stored in a numpy file in the output_staircase folder
    - then run the actual experiment
      --> when try_out == 0: then it will get the opacity from the staircase via filling in the same participant number in the dialogue box 
+
+The other files in this folder
+* most files are just some stuff I tried 
+* 1 useful file is the Target_visibility_check
+   - this file is used to ensure the targets visibility at each trial 
+   - I had quite some difficulties ensuring the target was equally visible each trial, as the target could appear anywhere inside the 2 larger gratings
