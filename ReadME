@@ -1,0 +1,34 @@
+Explanation of the important files
+* The 3 pictures: are used to deliver instructions to the participant, should be downloaded
+* The RPEP_functions.py file: is used to store the functions that can be used both in the file for the staircase as in the file for the actual experiment
+   - this to reduce the double work as staircase & experiment have many overlapping functions 
+   - the stimuli however are copied into the 2 files 
+* The RPEP_Staircase_2down_1up.py file: a staircase in which the opacity of the target is adapted 
+   - goal: set opacity so that participant will detect target with 70% accuracy 
+   - 2down 1up: after 2 correct answers the opacity decreases (harder), after every incorrect answer the opacity increases (easier) 
+     --> will converge to an accuracy of ca. 70% eventually 
+   - then based on the demo 'JND_staircase_analysis' of Psychopy, the 70% treshold is defined
+     --> this treshold is then stored in a numpy output file, which will be used again when running the actual experiment as value for the target opacity 
+* The RPEP_experiment.py file: the actual experiment 
+   - try-out option: when put to 0 the target_opacity is defined by the numpy output file from the staircase; when put to 1 the target_opacity is equal to the try_out_opa
+   - speedy-option: when put to 1 the whole experiment is ran, an automatic response is given right after appearance of the flash & the target 
+     --> can be handy to check whether the refresh rate of your computer is actually 60Hz as expected in this code 
+   
+
+How to run the experiment
+1. Download all files mentioned below into the same folder
+   - RPEP_functions.py
+   - RPEP_Staircase_2down_1up.py
+   - RPRP_experiment.py
+   - Instructies_exp1.png
+   - Instructies_exp2.png
+   - Instructies_exp3.png
+2. Change some variables in the files
+   - ppd: depends on the settings of your monitor (is used for the fixation cross)
+     --> pixels per degree 
+   - used_monitor: change this to match your monitor 
+3. How to run the experiment (part 1: staircase; part 2: actual experiment)
+   - first run the staircase (RPEP_Staircase_2down_1up)
+     --> the correct value for the opacity (to achieve 70% correct) will be stored in a numpy file in the output_staircase folder
+   - then run the actual experiment
+     --> when try_out == 0: then it will get the opacity from the staircase via filling in the same participant number in the dialogue box 
