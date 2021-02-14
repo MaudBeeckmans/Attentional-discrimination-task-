@@ -15,12 +15,18 @@ from RPEP_functions import create_target_positions
 #%%
 #Create the correct map & ExperimentHandler: with info, output_file
 my_home_directory, my_output_directory, pp_number, name, thisExp = create_output_file(map_name = 'Output_experiment', 
-                                                                                      file_name = 'Outputfile_pp')
+                                                                                      file_name = 'Outputfile_pp', exp_type = 'experiment')
 #%%Define the speedy & try_out
 speedy = 0
-try_out = 0
+try_out = 0        #1 = use try_out_opa; 2 = get opa from stair_file
 fullscreen = True
 try_out_opa = 0.8
+used_monitor = 'ExpMonitor'
+#used_monitor = 'Laptop'
+
+#calculate on site: https://www.sr-research.com/visual-angle-calculator/
+#ppd = 50 #find formula to transpose pixels to visual degrees (here pixel per degree)
+ppd = 30
 
 #%%create the design
 n_blocks = 6
@@ -44,9 +50,9 @@ Design_DF= create_pandas_design(array = Design_array, used_map = my_output_direc
 #%%create stiimuli & variables that should be created before the loops
 #Create window & ResponseOptions
 if fullscreen == True: 
-    win = visual.Window(fullscr = True, units = 'deg', monitor = 'Laptop', mouseVisible = False)
+    win = visual.Window(fullscr = True, units = 'deg', monitor = used_monitor, mouseVisible = False)
 else: 
-    win = visual.Window(size = [800, 600], units = "deg", monitor = "Laptop", mouseVisible = False)
+    win = visual.Window(size = [800, 600], units = "deg", monitor = used_monitor, mouseVisible = False)
 ResponseOptions = np.array(['f', 'j', 'esc', 'escape'])
 flash_frames = 2
 target_frames = 2
@@ -56,9 +62,7 @@ d1 = 0.6       #diameter outer circle (degrees)
 d2 = 0.2        #diameter inner circle (degrees)
 r1 = d1/2
 r2 = d2/2
-#calculate on site: https://www.sr-research.com/visual-angle-calculator/
-ppd = 45 #find formula to transpose pixels to visual degrees (here pixel per degree)
-ppd = 30
+
 point_d = math.sqrt(r1**2/2)
 dot_b = visual.Circle(win, color = 'black', radius = r1, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
 dot_s = visual.Circle(win, color = 'black', radius = r2, fillColor = 'black', lineColor = 'Black', lineWidth = 0)
@@ -120,11 +124,11 @@ message_template = visual.TextStim(win, text = '')
 FB_template = visual.TextStim(win, text = '')
 FB_trial_duration = 0.5
 FB_options = np.array(['Fout', 'Juist', 'Te traag'])
-points_per_euro = 600
-points_per_trial = 10
+points_per_halfeuro = 500
+points_per_trial = 15
 total_points = 0
 point_options = np.array(['+0', str('+' + str(points_per_trial)), '+0'])          #wrong, correct, no answer given 
-FB_block_duration = 2
+FB_block_duration = 3
 
 #Stimuli !! for the instructions 
 #The instructions (in Dutch)
@@ -147,7 +151,7 @@ InstructionsP4 = str('Geef ALTIJD een antwoord, ook als je de target niet hebt g
                      + 'tijd om te antwoorden bijna om. Geef dan zo snel mogelijk een antwoord.'
                      + spatie)
 InstructionsP5 = str('Je zal zowel REWARD als NON REWARD blokken maken. In de REWARD blokken kan je punten verdienen:'
-                     + '{} punten per correct antwoord. Per {} punten win je 1 EUR.'.format(points_per_trial, points_per_euro)
+                     + '{} punten per correct antwoord. Per {} punten win je 0,5 EUR.'.format(points_per_trial, points_per_halfeuro)
                      + 'In de NON REWARD blokken kan je geen punten verdienen. Aan het begin van elk blok wordt '
                      + 'het type blok aangegeven.' + spatie)
 InstructionsP6 = str('Korte samenvatting van de belangrijkste zaken: '
@@ -163,7 +167,7 @@ InstructionsP7 = str('Moest je nog vragen hebben, kom dan gerust eens kloppen bi
                      + 'hoofdsteun te leggen en vergeet niet steeds naar het fixatiekruis te kijken. Succes.' 
                      + spatie)
 
-instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5), alignText = 'left')
+instructions_text = visual.TextStim(win, height = 0.1, units = 'norm', wrapWidth = 1.9, pos = (0, 0.5))
 instructions_image = visual.ImageStim(win, image = None, pos = (0, -0.5), units = 'norm', size = (1.9, 1))
 path = my_home_directory
 
@@ -585,5 +589,6 @@ for trial in trials:
                        totalP = total_points, speedy = speedy)
 
 
-message(message_text = 'Bedankt voor je deelname!')
+message(message_text = 'Bedankt voor je deelname! \nJe hebt in totaal {} punten verdiend.'
+        .format(total_points))
 win.close()
