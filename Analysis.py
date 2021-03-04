@@ -122,7 +122,7 @@ pp_data_clean = delete_no_resp(data = pp_data)
 pp_data_6080_clean = delete_no_resp(data = pp_data_6080)
     
     
-#%%hier verder gaan!!!
+#%%
 """Rescale RT & Acc
 - RT * 1000: for ms
 - Acc * 100: for plotting """
@@ -149,12 +149,6 @@ pp_data_6080_df.to_csv('pp_data_6080_clean.csv')
 
 pp_data_df.columns = ['BlockN', 'FTI', 'Flash_position', 'Target_relative_position', 'Accuracy', 'Catch_accuracy', 
                       'RT', 'Block_type', 'Participant nummer', 'FTI_pos']
-
-
-
-#%%
-"""Convert back to dataframe for easy selection of conditions"""
-
 
 
 #%%
@@ -195,76 +189,124 @@ def mean_per_FTI(data = None, column_name = 'FTI'):
 
 #%% plot the mean accuracy data
 def plot_mean_accuracy(dictionary = None, pp_number = None): 
-    fig, axes = plt.subplots(nrows = 4, ncols = 2)
-    #fig.set_title('plots for participant {}'.format(pp_number))
+    n_cond = len(dictionary)
+    print(n_cond)
+    x_use = n_cond/4
+    y_use = n_cond/2
+    fig, axes = plt.subplots(nrows = int(n_cond/4), ncols = int(n_cond/4))
     x = 0
     y = 0
+    axes[0, 0].set_title('Reward block', fontsize = 12, fontweight = 'bold')
+    axes[0, 1].set_title('Non-Reward block', fontsize = 12, fontweight = 'bold')
     for i in dictionary: 
-        axes[x, y].set_title('{}'.format(i))
-        axes[x, y].plot(dictionary[i][:, 0].astype(int), dictionary[i][:, 1])
+        if x%2 == 0: 
+            color = 'r'
+            name = 'same'
+        else: 
+            color = 'k'
+            name = 'opposite'
+        axes[int(x/x_use), int(y/y_use)].plot(dictionary[i][:, 0].astype(int), dictionary[i][:, 1], 
+                                              color, label = name)
         x += 1
-        if x == 4: 
+        y += 1
+        if x == x_use*2: 
             x = 0
-            y = 1
-        fig.suptitle('Participant {}'.format(pp_number))
+    for a, b in np.column_stack([np.repeat([0, 1], 2), np.tile([0, 1], 2)]): 
+        axes[a, b].plot([0,0],[25,105], lw = 2, linestyle ="dashed", color ='b', label ='FTI = 0')
+    
+    
+    handles, labels = axes[0,0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center")
+    fig.subplots_adjust(left = .15, top = .80)
+    fig.text(0.01, 0.6, 'Left', fontsize = 12, fontweight = 'bold')
+    fig.text(0.01, 0.2, 'Right', fontsize = 12, fontweight = 'bold')
+    fig.text(0.01, 0.9, 'Participant {}'.format(pp_number), fontsize = 15)
+    
         
 
 #%%
 """Function to do the splitting into conditions all at once"""
 def data_to_conditions(this_data = None, FTI = 'pos'): 
-    pos_FTI, neg_FTI = split_FTI(data = this_data)
-    if FTI == 'pos': 
-        this_data = pos_FTI
-    else: 
-        this_data = neg_FTI
+    if FTI != None: 
+        pos_FTI, neg_FTI = split_FTI(data = this_data)
+        if FTI == 'pos': 
+            this_data = pos_FTI
+        elif FTI == 'neg': 
+            this_data = neg_FTI
+    rew, nonrew = split_Reward(data = this_data)
     
-    pos_rew, pos_nonrew = split_Reward(data = pos_FTI)
+    rew_same, rew_opp = split_Target_rel(data = rew)
+    nonrew_same, nonrew_opp = split_Target_rel(data = nonrew)
     
-    pos_rew_same, pos_rew_opp = split_Target_rel(data = pos_rew)
-    pos_nonrew_same, pos_nonrew_opp = split_Target_rel(data = pos_nonrew)
+    rew_same_flL, rew_same_flR = split_Flash(data = rew_same)
+    nonrew_same_flL, nonrew_same_flR = split_Flash(data = nonrew_same)
+    rew_opp_flL, rew_opp_flR = split_Flash(data = rew_opp)
+    nonrew_opp_flL, nonrew_opp_flR = split_Flash(data = nonrew_opp)
     
-    pos_rew_same_flL, pos_rew_same_flR = split_Flash(data = pos_rew_same)
-    pos_nonrew_same_flL, pos_nonrew_same_flR = split_Flash(data = pos_nonrew_same)
-    pos_rew_opp_flL, pos_rew_opp_flR = split_Flash(data = pos_rew_opp)
-    pos_nonrew_opp_flL, pos_nonrew_opp_flR = split_Flash(data = pos_nonrew_opp)
+    mean_rew_same_flL = mean_per_FTI(data = rew_same_flL)
+    mean_rew_same_flR = mean_per_FTI(data = rew_same_flR)
+    mean_rew_opp_flL = mean_per_FTI(data = rew_opp_flL)
+    mean_rew_opp_flR = mean_per_FTI(data = rew_opp_flR)
+    mean_nonrew_same_flL = mean_per_FTI(data = nonrew_same_flL)
+    mean_nonrew_same_flR = mean_per_FTI(data = nonrew_same_flR)
+    mean_nonrew_opp_flL = mean_per_FTI(data = nonrew_opp_flL)
+    mean_nonrew_opp_flR = mean_per_FTI(data = nonrew_opp_flR)
     
-    mean_pos_rew_same_flL = mean_per_FTI(data = pos_rew_same_flL)
-    mean_pos_rew_same_flR = mean_per_FTI(data = pos_rew_same_flR)
-    mean_pos_rew_opp_flL = mean_per_FTI(data = pos_rew_opp_flL)
-    mean_pos_rew_opp_flR = mean_per_FTI(data = pos_rew_opp_flR)
-    mean_pos_nonrew_same_flL = mean_per_FTI(data = pos_nonrew_same_flL)
-    mean_pos_nonrew_same_flR = mean_per_FTI(data = pos_nonrew_same_flR)
-    mean_pos_nonrew_opp_flL = mean_per_FTI(data = pos_nonrew_opp_flL)
-    mean_pos_nonrew_opp_flR = mean_per_FTI(data = pos_nonrew_opp_flR)
-    
-    All_conditions = {"R_left_same": mean_pos_rew_same_flL, "R_left_opp": mean_pos_rew_opp_flL,
-                      "R_right_same": mean_pos_rew_same_flR, "R_right_opp": mean_pos_rew_opp_flR,
-                      "NR_left_same": mean_pos_nonrew_same_flL, "NR_left_opp": mean_pos_nonrew_opp_flL,
-                      "NR_right_same": mean_pos_nonrew_same_flR, "NR_right_opp": mean_pos_nonrew_opp_flR}
+    All_conditions = {"R_left_same": mean_rew_same_flL, "R_left_opp": mean_rew_opp_flL,
+                      "R_right_same": mean_rew_same_flR, "R_right_opp": mean_rew_opp_flR,
+                      "NR_left_same": mean_nonrew_same_flL, "NR_left_opp": mean_nonrew_opp_flL,
+                      "NR_right_same": mean_nonrew_same_flR, "NR_right_opp": mean_nonrew_opp_flR}
     
     
     return All_conditions
-
+#%%
 used_data_df = pp_data_df
 used_data_np = pp_data_clean
-Conditions_dict = data_to_conditions(this_data = used_data_df, FTI = 'pos')
-plot_mean_accuracy(dictionary = Conditions_dict)
+pp_list = np.unique(used_data_np[:, 8])
+Conditions_dict = data_to_conditions(this_data = used_data_df, FTI = None)
+plot_mean_accuracy(dictionary = Conditions_dict, pp_number = 'averaged')
 
-for pp in np.unique(used_data_np[:, 8]): 
+for pp in pp_list: 
     single_data_df = pp_data_df.loc[pp_data_df['Participant nummer'] ==pp]
     single_data_np = single_data_df.to_numpy()
-    Conditions_dict = data_to_conditions(this_data = single_data_df, FTI = 'pos')
+    Conditions_dict = data_to_conditions(this_data = single_data_df, FTI = None)
     plot_mean_accuracy(dictionary = Conditions_dict, pp_number = pp)
-    
+
+
 
 
 #%%create fourier transform of the data
 
-# def fourier_transform(data = None): 
-#     time_points = data[:, 0]*1/60
-#     ft = np.fft.fft(data[:, 1])
-#     return time_points, ft
-# time_points, ft = fourier_transform(data = mean_pos_rew_same_flL)
-# average_data = mean_pos_rew_same_flL[:, 1]
-# plt.psd(average_data, Fs = 20)
+"""
+Nu gaan we de fft doen
+Eerst padden we de data om de resolutie te verhogen
+je neemt gewoon per conditie en proefpersoon het gemiddelde en gaat die dan voor en achter de data plakken
+Ik pad tot we 1 volle seconde aan data hebben met om de 50 ms (3 frames) 1 datapunt
+Dat wil zeggen dat we 21 datapunten nodig hebben: van 0 tot 1 in stappen van .05
+Voor de 15 FTI's na de flash voeg ik dus 6 punten bij (3 aan elke kant)
+Voor de 5 FTI's voor de flash voeg ik 16 punten bij (8 aan elke kant)
+"""
 
+n_pp = len(pp_list)
+n_cond = 8
+all_pos_array = np.empty([n_pp, 21+6, 2+n_cond+1])
+
+for pp in np.unique(used_data_np[:, 8]):
+    """Step1: Create conditions with only the positive FTI"""
+    single_data_df = pp_data_df.loc[pp_data_df['Participant nummer'] ==pp]
+    single_data_np = single_data_df.to_numpy()
+    Cond_dict_FTIpos = data_to_conditions(this_data = single_data_df, FTI = None)
+    cond_count = 0
+    for i in Cond_dict_FTIpos: 
+        mean_acc = np.mean(Cond_dict_FTIpos[i][:, 1])
+        bef_arr = np.column_stack([np.array([-3, -6, -9]), np.repeat(mean_acc, 3), np.zeros(3)])
+        after_arr = np.column_stack([np.array([48, 51, 54]), np.repeat(mean_acc, 3), np.zeros(3)])
+        this_array = np.row_stack([bef_arr, Cond_dict_FTIpos[i] , after_arr])
+        
+        all_pos_array[pp, cond_count, :, :] = this_array
+
+        cond_count += 1
+    
+        
+        
+                                                    
